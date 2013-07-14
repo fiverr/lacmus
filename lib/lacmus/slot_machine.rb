@@ -8,7 +8,7 @@ module Lacmus
 		# New experiments are automatically added 
 		# to the pending list, and wait there to be actiacted
 		def self.create_experiment(name, description)
-			experiment_metadata = Marshal.dump({:name => name, :description => description)
+			experiment_metadata = Marshal.dump({:name => name, :description => description})
 			Lacmus.fast_storage.zadd pending_experiments_key, generate_experiment_id, experiment_metadata
 		end
 
@@ -26,15 +26,18 @@ module Lacmus
 		# move experiment from one list to another
 		#
 		# valid list types - :pending, :active, :completed
+		# returns false if experiment not found
 		def self.move_experiment(experiment_id, from_list, to_list)
 			Lacmus.fast_storage.multi do
 				# get
 				experiment = get_experiment_from(from_list)
+				return false if experiment.nil?
 				# add to new
 				add_experiment_to(to_list, experiment_id, experiment)
 				# delete from old
 				remove_experiment_from(from_list, experiment_id)
 			end
+			true
 		end
 
 		# returns an experimend from one of the lists
@@ -56,6 +59,8 @@ module Lacmus
 		# removes an experiment from the active experiments list
 		# and clears it's slot
 		def self.deactivate_experiment(experiment_id)
+			move_experiment(experiment_id, :active, :completed)
+			remove_experiment_from_slots(experiment_id)
 		end
 
 		# removes an experiment from a list
@@ -64,8 +69,21 @@ module Lacmus
 		# accepts the following values: pending, active, completed
 		def self.remove_experiment_from(list, experiment_id)
 				Lacmus.fast_storage.zremrangebyrank list_key_by_type(list), experiment_id, experiment_id
-			end
+				if list == :active
+					remove_experiment_from_slots(experiment_id)
+				end
 		end	
+
+		def self.deactivate_all_experiments
+			Lacmus.fast_storage.multi do
+				deactivated_experiments = get_experiments_in_list(:active)
+				
+				deactivated_experiments.each do |experiment|
+					deactivate_experiment(experiment[:id])
+				end
+			end
+		end
+
 
 		# clears all experiments and resets the slots.
 		# warning - all experiments, including running ones, 
@@ -114,6 +132,10 @@ module Lacmus
 			end
 		end
 
+		def self.get_experiments_in_list(list)
+			Lacmus.fast_storage.zrange list_key_by_type(list), 0, -1
+		end
+
 		private
 
 		# here we look for an array stored in redis
@@ -135,13 +157,24 @@ module Lacmus
 		# and the function will return false.
 		def self.place_experiment_in_slot(experiment_id, slot)
 			slots = experiment_slots
-			return false if slots[slot] != 0
+			return false if !slots[slot].zero?
 			slots[slot] = experiment_id
 			true
 		end
 
+		# clears a slot for a new experiment, buy turning
+		# the	previous experiment's id into 0
+		def self.remove_experiment_from_slots(experiment_id)
+			index_to_replace = experiment_slots.index experiment_id
+			place_experiment_in_slot(0,index_to_replace)
+		end
+
+		# returns the appropriate key for the given list status
+		#
+		# list
+		# accepts the following values: pending, active, completed
 		def self.list_key_by_type(list)
-			eval("#{list.to_s}_experiments_key")
+			"#{Lacmus::Settings::LACMUS_NAMESPACE}-#{list.to_s}-experiments"
 		end
 
 		# clear all experiment slots, but only if there are no active tests
@@ -158,21 +191,21 @@ module Lacmus
 			Lacmus.fast_storage.get slot_usage_key
 		end
 
-		def self.active_experiments_key
-			Lacmus::Experiment.active_experiments_key
-		end
+		# def self.active_experiments_key
+		# 	Lacmus::Experiment.active_experiments_key
+		# end
 
-		def self.pending_experiments_key
-			"#{Lacmus::Settings::LACMUS_NAMESPACE}-pending-experiments"
-		end
+		# def self.pending_experiments_key
+		# 	"#{Lacmus::Settings::LACMUS_NAMESPACE}-pending-experiments"
+		# end
 
 		def self.slot_usage_key
 			"#{Lacmus::Settings::LACMUS_NAMESPACE}-slot-usage"
 		end
 
-		def self.completed_experiments_key
-			"#{Lacmus::Settings::LACMUS_NAMESPACE}-completed-experiments"
-		end
+		# def self.completed_experiments_key
+		# 	"#{Lacmus::Settings::LACMUS_NAMESPACE}-completed-experiments"
+		# end
 
 		def self.generate_experiment_id
 			Lacmus.fast_storage.incr "#{Lacmus::Settings::LACMUS_NAMESPACE}-last-experiment-id"

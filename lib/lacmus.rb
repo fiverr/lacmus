@@ -2,6 +2,7 @@
 require 'lacmus/fast_storage'
 require 'lacmus/utils'
 require 'lacmus/experiment'
+require 'lacmus/slot_machine'
 # require 'lacmus/helper'
 
 module Lacmus

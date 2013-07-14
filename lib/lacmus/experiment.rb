@@ -36,7 +36,7 @@ module Lacmus
 		end
 
 		def self.active_experiments_key
-			"#{Lacmus::Settings::LACMUS_NAMESPACE}-active_experiments"
+			"#{Lacmus::Settings::LACMUS_NAMESPACE}-active-experiments"
 		end
 
 		private
