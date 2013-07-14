@@ -6,10 +6,10 @@ require 'lacmus/version'
 Gem::Specification.new do |spec|
   spec.name          = "lacmus"
   spec.version       = Lacmus::VERSION
-  spec.authors       = ["Shai Wininger"]
-  spec.email         = ["shai.wininger@gmail.com"]
-  spec.description   = %q{TODO: Write a gem description}
-  spec.summary       = %q{TODO: Write a gem summary}
+  spec.authors       = ["Shai Wininger", "Moshe Lieberman"]
+  spec.email         = ["lacmus@fiverr.com"]
+  spec.description   = "An a/b testing framework"
+  spec.summary       = ""
   spec.homepage      = ""
   spec.license       = "MIT"
 
