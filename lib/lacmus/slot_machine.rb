@@ -6,15 +6,16 @@ require 'json'
 
 module Lacmus
 	module SlotMachine
+
+		DEFAULT_SLOTS_SIZE = 1
 		# creates a new experiment
 		#
 		# New experiments are automatically added 
 		# to the pending list, and wait there to be actiacted
 		def self.create_experiment(name, description)
-			exp_id = generate_experiment_id
-			experiment_metadata = {:name => name, :description => description, :experiment_id => exp_id}.to_json
-			Lacmus.fast_storage.zadd list_key_by_type(:pending), exp_id, experiment_metadata
-			exp_id
+			experiment_id = generate_experiment_id
+			add_experiment_to(:pending, {:name => name, :description => description, :experiment_id => experiment_id})
+			experiment_id
 		end
 
 		# activates an exeprtiment
@@ -38,7 +39,7 @@ module Lacmus
 				experiment = get_experiment_from(from_list, experiment_id)
 				return false if experiment.empty?
 				# add to new
-				add_experiment_to(to_list, experiment_id, experiment)
+				add_experiment_to(to_list, experiment)
 				# delete from old
 				remove_experiment_from(from_list, experiment_id)
 			# end
@@ -50,24 +51,34 @@ module Lacmus
 		# list
 		# accepts the following values: pending, active, completed
 		def self.get_experiment_from(list, experiment_id)
+			return {} if experiment_id.nil?
 			experiment = Lacmus.fast_storage.zrangebyscore list_key_by_type(list), experiment_id, experiment_id
 			return {} if experiment.nil? || experiment.empty?
-			JSON.parse(experiment.first)
+			Marshal.load(experiment.first)
 		end
 
 		# adds an experiment with metadata to a given list
 		# 
 		# list
 		# accepts the following values: pending, active, completed
-		def self.add_experiment_to(list, experiment_id, experiment_metadada)
-			Lacmus.fast_storage.zadd list_key_by_type(list), experiment_id, experiment_metadada
+		def self.add_experiment_to(list, experiment_metadada)
+			available_slot_id = find_available_slot
+			return false if available_slot_id.nil?
+
+			Lacmus.fast_storage.zadd list_key_by_type(list), experiment_metadada[:experiment_id], Marshal.dump(experiment_metadada)
+
+			if list == :active
+				place_experiment_in_slot(experiment_metadada[:experiment_id], available_slot_id)
+			end
+
+			true
 		end
 
 		# removes an experiment from the active experiments list
 		# and clears it's slot
 		def self.deactivate_experiment(experiment_id)
 			move_experiment(experiment_id, :active, :completed)
-			remove_experiment_from_slots(experiment_id)
+			remove_experiment_from_slot(experiment_id)
 		end
 
 		# removes an experiment from a list
@@ -77,13 +88,13 @@ module Lacmus
 		def self.remove_experiment_from(list, experiment_id)
 			Lacmus.fast_storage.zremrangebyscore list_key_by_type(list), experiment_id, experiment_id
 			if list == :active
-				remove_experiment_from_slots(experiment_id)
+				remove_experiment_from_slot(experiment_id)
 			end
 		end	
 
 		def self.deactivate_all_experiments
 			Lacmus.fast_storage.multi do
-				deactivated_experiments = get_experiments_in_list(:active)
+				deactivated_experiments = get_experiments(:active)
 				
 				deactivated_experiments.each do |experiment|
 					deactivate_experiment(experiment[:id])
@@ -99,6 +110,7 @@ module Lacmus
 			Lacmus.fast_storage.del list_key_by_type(:pending)
 			Lacmus.fast_storage.del list_key_by_type(:active)
 			Lacmus.fast_storage.del list_key_by_type(:completed)
+			clear_experiment_slots
 		end
 
 		# tries to find an empty slot for a completed experiment
@@ -112,7 +124,7 @@ module Lacmus
 			experiment = get_experiment_from(list_key_by_type(list), experiment_id)
 			return false if experiment.nil?
 			experiment.merge!({:start_time_as_int => Time.now.utc.to_i}) if list == :pending
-			add_experiment_to(:active, experiment_id, experiment)
+			add_experiment_to(:active, experiment)
 			place_experiment_in_slot(experiment_id, slot)
 			true
 		end
@@ -121,9 +133,9 @@ module Lacmus
 			slot_array = experiment_slots
 			
 			#create it for the first time
-			if slot_array.nil?
+			if slot_array.empty?
 				slot_array = Array.new(slots_to_use){0}
-				Lacmus.fast_storage.set slot_usage_key, slot_array
+				Lacmus.fast_storage.set slot_usage_key, Marshal.dump(slot_array)
 				return true
 			end
 
@@ -134,12 +146,12 @@ module Lacmus
 			if slots_to_use > slot_array.count
 				slots_to_add = slots_to_use - slot_array.count
 				slot_array << Array.new(slots_to_add){0}
-				Lacmus.fast_storage.set slot_usage_key, slot_array
+				Lacmus.fast_storage.set slot_usage_key, Marshal.dump(slot_array)
 				return true
 			end
 		end
 
-		def self.get_experiments_in_list(list)
+		def self.get_experiments(list)
 			Lacmus.fast_storage.zrange list_key_by_type(list), 0, -1
 		end
 
@@ -148,14 +160,14 @@ module Lacmus
 		# here we look for an array stored in redis
 		# and we look for the first 0 in the array that we find
 		# the 0 represents an open slot
+		# returns nil if no slots are available
 		def self.find_available_slot
 			slots = experiment_slots
-			if slots.nil?
+			if slots.empty?
 				# fist run, nothing is taken yet
-				set_available_slots
+				set_available_slots(DEFAULT_SLOTS_SIZE)
 				return 0
 			end
-			
 			slots.index 0
 		end
 
@@ -166,12 +178,14 @@ module Lacmus
 			slots = experiment_slots
 			return false if !slots[slot].zero?
 			slots[slot] = experiment_id
+			Lacmus.fast_storage.set slot_usage_key, Marshal.dump(slots)
 			true
 		end
 
 		# clears a slot for a new experiment, buy turning
 		# the	previous experiment's id into 0
-		def self.remove_experiment_from_slots(experiment_id)
+		def self.remove_experiment_from_slot(experiment_id)
+			return if experiment_slots.empty?
 			index_to_replace = experiment_slots.index experiment_id
 			place_experiment_in_slot(0,index_to_replace)
 		end
@@ -184,18 +198,18 @@ module Lacmus
 			"#{Lacmus::Settings::LACMUS_NAMESPACE}-#{list.to_s}-experiments"
 		end
 
-		# clear all experiment slots, but only if there are no active tests
-		# this is a fail save to prevent breaking the sync between the 
-		# list of active experiments and their positining slots
+		# clear all experiment slots
 		def self.clear_experiment_slots
-			active_experiments = Lacmus.fast_storage.get active_experiments_key
-			return false if active_experiments.nil? || active_experiments.count < 1
-			experiment_slots = Array.new(experiment_slots.count){0}
-			Lacmus.fast_storage.set slot_usage_key, experiment_slots
+			Lacmus.fast_storage.set slot_usage_key, Marshal.dump([])
 		end
 
 		def self.experiment_slots
-			Lacmus.fast_storage.get slot_usage_key
+			result = Lacmus.fast_storage.get slot_usage_key
+			if result
+				Marshal.load(result)
+			else
+				[]
+			end
 		end
 
 		def self.slot_usage_key
