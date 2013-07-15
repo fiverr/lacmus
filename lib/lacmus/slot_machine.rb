@@ -2,6 +2,7 @@ require_relative 'settings'
 require_relative 'fast_storage'
 require 'redis'
 require 'pry'
+require 'json'
 
 module Lacmus
 	module SlotMachine
@@ -11,7 +12,7 @@ module Lacmus
 		# to the pending list, and wait there to be actiacted
 		def self.create_experiment(name, description)
 			exp_id = generate_experiment_id
-			experiment_metadata = Marshal.dump({:name => name, :description => description, :experiment_id => exp_id})
+			experiment_metadata = {:name => name, :description => description, :experiment_id => exp_id}.to_json
 			Lacmus.fast_storage.zadd list_key_by_type(:pending), exp_id, experiment_metadata
 			exp_id
 		end
@@ -32,15 +33,15 @@ module Lacmus
 		# valid list types - :pending, :active, :completed
 		# returns false if experiment not found
 		def self.move_experiment(experiment_id, from_list, to_list)
-			Lacmus.fast_storage.multi do
-				# get
+			# Lacmus.fast_storage.multi do
+				# get-
 				experiment = get_experiment_from(from_list, experiment_id)
 				return false if experiment.empty?
 				# add to new
 				add_experiment_to(to_list, experiment_id, experiment)
 				# delete from old
 				remove_experiment_from(from_list, experiment_id)
-			end
+			# end
 			true
 		end
 
@@ -50,9 +51,8 @@ module Lacmus
 		# accepts the following values: pending, active, completed
 		def self.get_experiment_from(list, experiment_id)
 			experiment = Lacmus.fast_storage.zrangebyscore list_key_by_type(list), experiment_id, experiment_id
-			binding.pry
 			return {} if experiment.nil? || experiment.empty?
-			Marshal.load(experiment.first)
+			JSON.parse(experiment.first)
 		end
 
 		# adds an experiment with metadata to a given list
@@ -198,21 +198,9 @@ module Lacmus
 			Lacmus.fast_storage.get slot_usage_key
 		end
 
-		# def self.active_experiments_key
-		# 	Lacmus::Experiment.active_experiments_key
-		# end
-
-		# def self.pending_experiments_key
-		# 	"#{Lacmus::Settings::LACMUS_NAMESPACE}-pending-experiments"
-		# end
-
 		def self.slot_usage_key
 			"#{Lacmus::Settings::LACMUS_NAMESPACE}-slot-usage"
 		end
-
-		# def self.completed_experiments_key
-		# 	"#{Lacmus::Settings::LACMUS_NAMESPACE}-completed-experiments"
-		# end
 
 		def self.generate_experiment_id
 			Lacmus.fast_storage.incr "#{Lacmus::Settings::LACMUS_NAMESPACE}-last-experiment-id"
