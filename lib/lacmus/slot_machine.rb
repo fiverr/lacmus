@@ -35,12 +35,10 @@ module Lacmus
 		# returns false if experiment not found
 		def self.move_experiment(experiment_id, from_list, to_list)
 			# Lacmus.fast_storage.multi do
-				# get-
 				experiment = get_experiment_from(from_list, experiment_id)
 				return false if experiment.empty?
-				# add to new
+
 				add_experiment_to(to_list, experiment)
-				# delete from old
 				remove_experiment_from(from_list, experiment_id)
 			# end
 			true
@@ -62,15 +60,12 @@ module Lacmus
 		# list
 		# accepts the following values: pending, active, completed
 		def self.add_experiment_to(list, experiment_metadada)
-			available_slot_id = find_available_slot
-			return false if available_slot_id.nil?
-
-			Lacmus.fast_storage.zadd list_key_by_type(list), experiment_metadada[:experiment_id], Marshal.dump(experiment_metadada)
-
 			if list == :active
+				available_slot_id = find_available_slot
+				return false if available_slot_id.nil?
 				place_experiment_in_slot(experiment_metadada[:experiment_id], available_slot_id)
 			end
-
+			Lacmus.fast_storage.zadd list_key_by_type(list), experiment_metadada[:experiment_id], Marshal.dump(experiment_metadada)
 			true
 		end
 
@@ -176,10 +171,8 @@ module Lacmus
 		# and the function will return false.
 		def self.place_experiment_in_slot(experiment_id, slot)
 			slots = experiment_slots
-			return false if !slots[slot].zero?
 			slots[slot] = experiment_id
 			Lacmus.fast_storage.set slot_usage_key, Marshal.dump(slots)
-			true
 		end
 
 		# clears a slot for a new experiment, buy turning
