@@ -1,7 +1,14 @@
 module Lacmus
 	module Settings
 		LACMUS_NAMESPACE = "lcms"
-		ROOT = (defined?(Rails.root) && Rails.root) ? Rails.root : Dir.pwd
-		ENV = Rails.env
+		$has_rails = defined?(Rails.root)
+		if $has_rails
+			ROOT = Rails.root
+			ENV = Rails.env
+		else
+			ROOT = "#{Dir.pwd}/spec"
+			ENV = "test"
+		end
+
 	end
 end

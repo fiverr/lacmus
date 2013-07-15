@@ -6,4 +6,4 @@ module Lacmus
 	end
 end
 
-ActionController::Base.send(:include, Lacmus::Helper)
+ActionController::Base.send(:include, Lacmus::Helper) if $has_rails

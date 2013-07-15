@@ -1,5 +1,6 @@
 require_relative 'settings'
 require_relative 'fast_storage'
+require 'redis'
 
 module Lacmus
 	module SlotMachine
@@ -8,8 +9,9 @@ module Lacmus
 		# New experiments are automatically added 
 		# to the pending list, and wait there to be actiacted
 		def self.create_experiment(name, description)
-			experiment_metadata = Marshal.dump({:name => name, :description => description})
-			Lacmus.fast_storage.zadd pending_experiments_key, generate_experiment_id, experiment_metadata
+			exp_id = generate_experiment_id
+			experiment_metadata = Marshal.dump({:name => name, :description => description, :experiment_id=> exp_id})
+			Lacmus.fast_storage.zadd list_key_by_type(:pending), exp_id, experiment_metadata
 		end
 
 		# activates an exeprtiment
@@ -89,9 +91,9 @@ module Lacmus
 		# warning - all experiments, including running ones, 
 		# and completed ones will be permanently lost!
 		def self.nuke_all_experiments
-			Lacmus.fast_storage.del pending_experiments_key
-			Lacmus.fast_storage.del active_experiments_key
-			Lacmus.fast_storage.del completed_experiments_key
+			Lacmus.fast_storage.del list_key_by_type(:pending)
+			Lacmus.fast_storage.del list_key_by_type(:active)
+			Lacmus.fast_storage.del list_key_by_type(:completed)
 		end
 
 		# tries to find an empty slot for a completed experiment

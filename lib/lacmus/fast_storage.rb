@@ -1,4 +1,5 @@
 require_relative "settings"
+require 'yaml'
 
 # initializes the fast storage, in our case - redis
 module Lacmus
