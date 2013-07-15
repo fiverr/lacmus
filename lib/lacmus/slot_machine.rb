@@ -1,6 +1,7 @@
 require_relative 'settings'
 require_relative 'fast_storage'
 require 'redis'
+require 'pry'
 
 module Lacmus
 	module SlotMachine
@@ -10,8 +11,9 @@ module Lacmus
 		# to the pending list, and wait there to be actiacted
 		def self.create_experiment(name, description)
 			exp_id = generate_experiment_id
-			experiment_metadata = Marshal.dump({:name => name, :description => description, :experiment_id=> exp_id})
+			experiment_metadata = Marshal.dump({:name => name, :description => description, :experiment_id => exp_id})
 			Lacmus.fast_storage.zadd list_key_by_type(:pending), exp_id, experiment_metadata
+			exp_id
 		end
 
 		# activates an exeprtiment
@@ -32,8 +34,8 @@ module Lacmus
 		def self.move_experiment(experiment_id, from_list, to_list)
 			Lacmus.fast_storage.multi do
 				# get
-				experiment = get_experiment_from(from_list)
-				return false if experiment.nil?
+				experiment = get_experiment_from(from_list, experiment_id)
+				return false if experiment.empty?
 				# add to new
 				add_experiment_to(to_list, experiment_id, experiment)
 				# delete from old
@@ -47,7 +49,10 @@ module Lacmus
 		# list
 		# accepts the following values: pending, active, completed
 		def self.get_experiment_from(list, experiment_id)
-			Marshal.load(Lacmus.fast_storage.zrange list_key_by_type(list), experiment_id, experiment_id)
+			experiment = Lacmus.fast_storage.zrangebyscore list_key_by_type(list), experiment_id, experiment_id
+			binding.pry
+			return {} if experiment.nil? || experiment.empty?
+			Marshal.load(experiment.first)
 		end
 
 		# adds an experiment with metadata to a given list
@@ -70,10 +75,10 @@ module Lacmus
 		# list
 		# accepts the following values: pending, active, completed
 		def self.remove_experiment_from(list, experiment_id)
-				Lacmus.fast_storage.zremrangebyrank list_key_by_type(list), experiment_id, experiment_id
-				if list == :active
-					remove_experiment_from_slots(experiment_id)
-				end
+			Lacmus.fast_storage.zremrangebyscore list_key_by_type(list), experiment_id, experiment_id
+			if list == :active
+				remove_experiment_from_slots(experiment_id)
+			end
 		end	
 
 		def self.deactivate_all_experiments

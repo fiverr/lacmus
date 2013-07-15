@@ -4,8 +4,8 @@ source 'https://rubygems.org'
 group :test do
   gem "rspec-rails", "~> 2.0"
   gem 'redis'
-  # gem 'capybara', '1.1.2'
-  # gem 'spork', '0.9.2'
+	gem 'pry'
+	gem 'pry-debugger'
 end
 
 gemspec
