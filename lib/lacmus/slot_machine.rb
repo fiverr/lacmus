@@ -2,13 +2,12 @@ require_relative 'settings'
 require_relative 'fast_storage'
 require 'redis'
 require 'pry'
-require 'json'
 
 module Lacmus
 	module SlotMachine
 
 		# Constants
-		DEFAULT_SLOTS_SIZE = 1
+		DEFAULT_SLOTS_ARRAY = [0,-1]
 
 		# Create a new experiment and add it to the pending list.
 		#
@@ -119,7 +118,7 @@ module Lacmus
 			return false if new_size <= slot_array.count
 
 			slots_to_add = new_size - slot_array.count
-			slot_array += Array.new(slots_to_add){0}
+			slot_array += Array.new(slots_to_add){-1}
 			Lacmus.fast_storage.set slot_usage_key, Marshal.dump(slot_array)
 			true
 		end
@@ -131,12 +130,12 @@ module Lacmus
 		private
 
 		# here we look for an array stored in redis
-		# and we look for the first 0 in the array that we find
+		# and we look for the first -1 in the array that we find
 		# the 0 represents an open slot
 		# returns nil if no slots are available
 		def self.find_available_slot
 			slots = experiment_slots
-			slots.index 0
+			slots.index -1
 		end
 
 		# takes a free slot given to it, and assignes an experiment
@@ -144,7 +143,7 @@ module Lacmus
 		# and the function will return false.
 		def self.place_experiment_in_slot(experiment_id, slot)
 			slots = experiment_slots
-			return unless slots[slot].zero?
+			return unless slots[slot] == -1
 
 			slots[slot] = experiment_id
 			set_updated_slots(slots)
@@ -157,8 +156,12 @@ module Lacmus
 			return if slots.empty?
 
 			index_to_replace = slots.index experiment_id
-			slots[index_to_replace] = 0
+			slots[index_to_replace] = -1
 			set_updated_slots(slots)
+		end
+
+		def self.get_experiment_id_from_slot(slot)
+			experiment_slots[slot]
 		end
 
 		def self.set_updated_slots(slots)
@@ -168,7 +171,8 @@ module Lacmus
 		# clear all experiment slots, leaving the number of slots untouched
 		def self.clear_experiment_slots
 			result = Marshal.load(Lacmus.fast_storage.get slot_usage_key)
-			clean_array = Array.new(result.count){0}
+			clean_array = Array.new(result.count){-1}
+			clean_array[0] = 0
 			Lacmus.fast_storage.set slot_usage_key, Marshal.dump(clean_array)
 		end
 
@@ -178,7 +182,7 @@ module Lacmus
 		end
 
 		def self.init_slots
-			slot_array = Array.new(DEFAULT_SLOTS_SIZE){0}
+			slot_array = DEFAULT_SLOTS_ARRAY
 			Lacmus.fast_storage.set slot_usage_key, Marshal.dump(slot_array)
 			slot_array
 		end
