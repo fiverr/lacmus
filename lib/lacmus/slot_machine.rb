@@ -34,13 +34,11 @@ module Lacmus
 		# valid list types - :pending, :active, :completed
 		# returns false if experiment not found
 		def self.move_experiment(experiment_id, from_list, to_list)
-			# Lacmus.fast_storage.multi do
-				experiment = get_experiment_from(from_list, experiment_id)
-				return false if experiment.empty?
-
-				add_experiment_to(to_list, experiment)
-				remove_experiment_from(from_list, experiment_id)
-			# end
+			experiment = get_experiment_from(from_list, experiment_id)
+			return false if experiment.empty?
+			result = add_experiment_to(to_list, experiment)
+			return false if !result
+			remove_experiment_from(from_list, experiment_id)
 			true
 		end
 
@@ -105,7 +103,7 @@ module Lacmus
 			Lacmus.fast_storage.del list_key_by_type(:pending)
 			Lacmus.fast_storage.del list_key_by_type(:active)
 			Lacmus.fast_storage.del list_key_by_type(:completed)
-			clear_experiment_slots
+			reset_slots_to_defaults
 		end
 
 		# tries to find an empty slot for a completed experiment
@@ -124,26 +122,14 @@ module Lacmus
 			true
 		end
 
-		def self.set_available_slots(slots_to_use)
+		def self.resize_slot_array(new_size)
 			slot_array = experiment_slots
-			
-			#create it for the first time
-			if slot_array.empty?
-				slot_array = Array.new(slots_to_use){0}
-				Lacmus.fast_storage.set slot_usage_key, Marshal.dump(slot_array)
-				return true
-			end
+			return false if new_size <= slot_array.count
 
-			return false if slots_to_use < slot_array.count
-			return false if slots_to_use == slot_array.count
-				
-			# enlarge the slot list
-			if slots_to_use > slot_array.count
-				slots_to_add = slots_to_use - slot_array.count
-				slot_array << Array.new(slots_to_add){0}
-				Lacmus.fast_storage.set slot_usage_key, Marshal.dump(slot_array)
-				return true
-			end
+			slots_to_add = new_size - slot_array.count
+			slot_array += Array.new(slots_to_add){0}
+			Lacmus.fast_storage.set slot_usage_key, Marshal.dump(slot_array)
+			true
 		end
 
 		def self.get_experiments(list)
@@ -158,11 +144,6 @@ module Lacmus
 		# returns nil if no slots are available
 		def self.find_available_slot
 			slots = experiment_slots
-			if slots.empty?
-				# fist run, nothing is taken yet
-				set_available_slots(DEFAULT_SLOTS_SIZE)
-				return 0
-			end
 			slots.index 0
 		end
 
@@ -184,7 +165,7 @@ module Lacmus
 			return if slots.empty?
 
 			index_to_replace = slots.index experiment_id
-			slots[index_to_replace] = experiment_id
+			slots[index_to_replace] = 0
 			set_updated_slots(slots)
 		end
 
@@ -200,18 +181,27 @@ module Lacmus
 			"#{Lacmus::Settings::LACMUS_NAMESPACE}-#{list.to_s}-experiments"
 		end
 
-		# clear all experiment slots
+		# clear all experiment slots, leaving the number of slots untouched
 		def self.clear_experiment_slots
-			Lacmus.fast_storage.set slot_usage_key, Marshal.dump([])
+			result = Marshal.load(Lacmus.fast_storage.get slot_usage_key)
+			clean_array = Array.new(result.count){0}
+			Lacmus.fast_storage.set slot_usage_key, Marshal.dump(clean_array)
+		end
+
+		# reset slot machine to default
+		def self.reset_slots_to_defaults
+			Lacmus.fast_storage.del slot_usage_key
+		end
+
+		def self.init_slots
+			slot_array = Array.new(DEFAULT_SLOTS_SIZE){0}
+			Lacmus.fast_storage.set slot_usage_key, Marshal.dump(slot_array)
+			slot_array
 		end
 
 		def self.experiment_slots
 			result = Lacmus.fast_storage.get slot_usage_key
-			if result
-				Marshal.load(result)
-			else
-				[]
-			end
+			result ? Marshal.load(result) : init_slots
 		end
 
 		def self.slot_usage_key
