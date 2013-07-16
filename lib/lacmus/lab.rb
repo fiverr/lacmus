@@ -1,10 +1,11 @@
 module Lacmus
 	module Lab
+
 		# Constants
 		AMOUNT_OF_CONTROL_GROUPS = 1
 		MAX_COOKIE_TIME = Time.now.utc.to_i + (60 * 60 * 24 * 365)
 
-		def experiment_utils
+		def self.experiment_utils
 			Lacmus::Experiment
 		end
 
