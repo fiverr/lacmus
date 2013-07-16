@@ -171,16 +171,25 @@ module Lacmus
 		# and the function will return false.
 		def self.place_experiment_in_slot(experiment_id, slot)
 			slots = experiment_slots
+			return unless slots[slot].zero?
+
 			slots[slot] = experiment_id
-			Lacmus.fast_storage.set slot_usage_key, Marshal.dump(slots)
+			set_updated_slots(slots)
 		end
 
-		# clears a slot for a new experiment, buy turning
+		# clears a slot for a new experiment, by turning
 		# the	previous experiment's id into 0
 		def self.remove_experiment_from_slot(experiment_id)
-			return if experiment_slots.empty?
-			index_to_replace = experiment_slots.index experiment_id
-			place_experiment_in_slot(0,index_to_replace)
+			slots = experiment_slots
+			return if slots.empty?
+
+			index_to_replace = slots.index experiment_id
+			slots[index_to_replace] = experiment_id
+			set_updated_slots(slots)
+		end
+
+		def self.set_updated_slots(slots)
+			Lacmus.fast_storage.set slot_usage_key, Marshal.dump(slots)
 		end
 
 		# returns the appropriate key for the given list status

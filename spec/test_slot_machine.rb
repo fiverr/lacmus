@@ -12,7 +12,7 @@ describe Lacmus::SlotMachine, "Management Features" do
     Lacmus::SlotMachine.nuke_all_experiments
   end
 
-	it "creates experiments as pending" do 
+	it "should creates experiments as pending" do 
 		experiment_id = Lacmus::SlotMachine.create_experiment(@experiment_name, @experiment_description)
 		expect(experiment_id).to be > 0
 		experiment_in_pending_queue = Lacmus::SlotMachine.get_experiment_from(:pending, experiment_id)
@@ -51,6 +51,22 @@ describe Lacmus::SlotMachine, "Management Features" do
 
 		expect(experiment_pending[:name]).to eq(@experiment_name)
 		expect(experiment_active).to eq({})
+	end
+
+	it "should fill the first slot with the experiment_id" do
+		experiment_id = Lacmus::SlotMachine.create_experiment(@experiment_name, @experiment_description)
+		Lacmus::SlotMachine.move_experiment(experiment_id, :pending, :active)
+
+		first_slot = Lacmus::SlotMachine.experiment_slots[0]
+		expect(first_slot).to eq(experiment_id)
+	end
+
+	it "should not override slot when taken"
+		p "after 1st, experiment_id: #{experiment_id}"
+		experiment_id2 = Lacmus::SlotMachine.create_experiment(@experiment_name, @experiment_description)
+		Lacmus::SlotMachine.move_experiment(experiment_id2, :pending, :active)
+		p "after 2nd, experiment_id2: #{experiment_id2}"
+		puts Lacmus::SlotMachine.experiment_slots.inspect
 	end
 
 end
