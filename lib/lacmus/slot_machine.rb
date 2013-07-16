@@ -7,18 +7,23 @@ require 'json'
 module Lacmus
 	module SlotMachine
 
+		# Constants
 		DEFAULT_SLOTS_SIZE = 1
-		# creates a new experiment
+
+		# Create a new experiment and add it to the pending list.
 		#
-		# New experiments are automatically added 
-		# to the pending list, and wait there to be actiacted
+		# == Returns
+		# Integer representing the new experiment id.
+		#
 		def self.create_experiment(name, description)
-			experiment_id = generate_experiment_id
-			add_experiment_to(:pending, {:name => name, :description => description, :experiment_id => experiment_id})
+			experiment_id 		 	= generate_experiment_id
+			experiment_metadada = {:experiment_id => experiment_id, :name => name, :description => description}
+
+			add_experiment_to(:pending, experiment_metadada)
 			experiment_id
 		end
 
-		# activates an exeprtiment
+		# Activate an exeprtiment
 		# 
 		# this is done by trying to find an empty experiment slot
 		# and moving the experiment from the pending list to the active
@@ -26,7 +31,7 @@ module Lacmus
 		# 
 		# returns true on success, false on failure
 		def self.activate_experiment(experiment_id)
-			return activate_experiment_from(:pending, experiment_id)
+			move_experiment(experiment_id, :pending, :active)
 		end
 
 		# move experiment from one list to another
@@ -36,8 +41,13 @@ module Lacmus
 		def self.move_experiment(experiment_id, from_list, to_list)
 			experiment = get_experiment_from(from_list, experiment_id)
 			return false if experiment.empty?
+
+			if from_list == :pending && to_list == :active
+				experiment.merge!({:start_time_as_int => Time.now.utc.to_i})
+			end
 			result = add_experiment_to(to_list, experiment)
-			return false if !result
+			return false unless result
+
 			remove_experiment_from(from_list, experiment_id)
 			true
 		end
@@ -95,7 +105,6 @@ module Lacmus
 			end
 		end
 
-
 		# clears all experiments and resets the slots.
 		# warning - all experiments, including running ones, 
 		# and completed ones will be permanently lost!
@@ -104,22 +113,6 @@ module Lacmus
 			Lacmus.fast_storage.del list_key_by_type(:active)
 			Lacmus.fast_storage.del list_key_by_type(:completed)
 			reset_slots_to_defaults
-		end
-
-		# tries to find an empty slot for a completed experiment
-		# if it finds one, it moves the experiment into the
-		# active experiments list and updates the slots
-		#
-		# returns true on success, false on failure
-		def self.activate_experiment_from(list, experiment_id)
-			slot = find_available_slot
-			return false if slot.nil?
-			experiment = get_experiment_from(list_key_by_type(list), experiment_id)
-			return false if experiment.nil?
-			experiment.merge!({:start_time_as_int => Time.now.utc.to_i}) if list == :pending
-			add_experiment_to(:active, experiment)
-			place_experiment_in_slot(experiment_id, slot)
-			true
 		end
 
 		def self.resize_slot_array(new_size)

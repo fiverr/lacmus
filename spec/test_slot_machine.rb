@@ -30,14 +30,14 @@ describe Lacmus::SlotMachine, "Management Features" do
 		expect(experiment_in_pending_queue[:experiment_id]).to eq(experiment_id)
 	end
 
-	it "removes an experiment from list" do 
+	it "should remove experiment from list" do 
 		experiment_id = Lacmus::SlotMachine.create_experiment(@experiment_name, @experiment_description)
 		Lacmus::SlotMachine.remove_experiment_from(:pending, experiment_id)
 		experiment = Lacmus::SlotMachine.get_experiment_from(:pending, experiment_id)
 		expect(experiment).to be_empty
 	end
 
-	it "move an experiment from pending to active" do 
+	it "should move experiment from pending to active" do 
 		experiment_id = Lacmus::SlotMachine.create_experiment(@experiment_name, @experiment_description)
 		move_result = Lacmus::SlotMachine.move_experiment(experiment_id, :pending, :active)
 		expect(move_result).to be_true
@@ -50,7 +50,7 @@ describe Lacmus::SlotMachine, "Management Features" do
 		expect(Lacmus::SlotMachine.experiment_slots[0]).not_to be_nil
 	end
 
-	it "move an experiment from active to pending" do 
+	it "should move experiment from active to pending" do 
 		experiment_id = create_and_activate_experiment
 
 		Lacmus::SlotMachine.move_experiment(experiment_id, :active, :pending)
