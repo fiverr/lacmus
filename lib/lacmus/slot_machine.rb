@@ -98,7 +98,6 @@ module Lacmus
 		def self.deactivate_all_experiments
 			Lacmus.fast_storage.multi do
 				deactivated_experiments = get_experiments(:active)
-				
 				deactivated_experiments.each do |experiment|
 					deactivate_experiment(experiment[:id])
 				end
@@ -166,14 +165,6 @@ module Lacmus
 			Lacmus.fast_storage.set slot_usage_key, Marshal.dump(slots)
 		end
 
-		# returns the appropriate key for the given list status
-		#
-		# list
-		# accepts the following values: pending, active, completed
-		def self.list_key_by_type(list)
-			"#{Lacmus::Settings::LACMUS_NAMESPACE}-#{list.to_s}-experiments"
-		end
-
 		# clear all experiment slots, leaving the number of slots untouched
 		def self.clear_experiment_slots
 			result = Marshal.load(Lacmus.fast_storage.get slot_usage_key)
@@ -203,6 +194,14 @@ module Lacmus
 
 		def self.generate_experiment_id
 			Lacmus.fast_storage.incr "#{Lacmus::Settings::LACMUS_NAMESPACE}-last-experiment-id"
+		end
+
+		# returns the appropriate key for the given list status
+		#
+		# list
+		# accepts the following values: pending, active, completed
+		def self.list_key_by_type(list)
+			"#{Lacmus::Settings::LACMUS_NAMESPACE}-#{list.to_s}-experiments"
 		end
 
 	end

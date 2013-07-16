@@ -2,6 +2,7 @@ require_relative "settings"
 
 module Lacmus
 	module Utils
+
 		@@engine = nil
 
 		# generate a unique temporary user id to use for every user
@@ -21,7 +22,6 @@ module Lacmus
 		def self.pick_group(user_id)
 			(user_id.to_i % 2).to_i
 		end
-
 
 	end
 end

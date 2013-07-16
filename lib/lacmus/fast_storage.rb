@@ -4,6 +4,7 @@ require 'yaml'
 # initializes the fast storage, in our case - redis
 module Lacmus
 	module FastStorage
+
 		@@settings = YAML.load(File.open("#{Lacmus::Settings::ROOT}/config/lacmus.yml"))[Lacmus::Settings::ENV]
 		@@redis = nil 
 

@@ -2,8 +2,12 @@ require_relative 'settings'
 require_relative 'fast_storage'
 
 module Lacmus
-
 	module Experiment
+
+		# Constants
+		AMOUNT_OF_CONTROL_GROUPS = 1
+
+		# Class variables
 		@@web_admin_prefs = {}
 		@@web_prefs_last_loaded_at = nil
 
@@ -19,9 +23,9 @@ module Lacmus
 			Lacmus.fast_storage.smembers active_experiments_key
 		end
 
-		def self.control_group
-			get_group.to_i.zero?
-		end
+		# def self.control_group
+		# 	get_group.to_i.zero?
+		# end
 
 		def self.experiment_active?(experiment_id)
 			Lacmus.fast_storage.sismember active_experiments_key, experiment_id
@@ -33,10 +37,6 @@ module Lacmus
 			end
 
 			@@web_admin_prefs
-		end
-
-		def self.active_experiments_key
-			"#{Lacmus::Settings::LACMUS_NAMESPACE}-active-experiments"
 		end
 
 		private
@@ -67,19 +67,24 @@ module Lacmus
 
 		# we add 1 to the concurrent tests requested to run from the admin
 		# to include the control group
-		def self.get_group
-			current_temp_user_id % (available_experiment_slots + 1)
+		def self.get_experiment_for_user_id
+			current_temp_user_id % (experiment_slots_count + AMOUNT_OF_CONTROL_GROUPS)
 		end
 
 		def self.track_exposure(experiment_id)
-			group = get_group
+			group = get_experiment_for_user_id
 			return if group
 			Lacmus.fast_storage.incr view_counter_key(experiment_id, group)
 			Lacmus.client_storage.store_exposed_experiment(experiment_id)
 		end
 
-		def available_experiment_slots
-			web_admin_prefs['available_experiment_slots']
+		def self.exposed_counter(experiment_id)
+			Lacmus.fast_storage.incr view_counter_key(experiment_id, group)
+		end
+
+		# TODO: store in web_admin_prefs['experiment_slots_count'] and use it instead
+		def self.experiment_slots_count
+			Lacmus::SlotMachine.experiment_slots.count
 		end
 
 		def self.load_web_admin_prefs
@@ -88,6 +93,10 @@ module Lacmus
 		end
 
 		# ------------------------------------------------
+
+		def self.active_experiments_key
+			Lacmus::SlotMachine.list_key_by_type(:active)
+		end
 
 		def self.view_counter_key(experiment_id, group)
 			"#{Lacmus::Settings::LACMUS_NAMESPACE}-counter-#{experiment_id.to_s}-#{group.to_s}"
