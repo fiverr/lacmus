@@ -189,6 +189,7 @@ module Lacmus
 			slot_array
 		end
 
+		# TODO: cache this value in class variable
 		def self.experiment_slots
 			result = Lacmus.fast_storage.get slot_usage_key
 			result ? Marshal.load(result) : init_slots

@@ -22,10 +22,5 @@ module Lacmus
 			"#{Lacmus::Settings::LACMUS_NAMESPACE}-tmp-uid"
 		end
 
-		# picks a group for a given tmp user id
-		def self.pick_group(user_id)
-			(user_id.to_i % 2).to_i
-		end
-
 	end
 end

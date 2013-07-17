@@ -108,4 +108,21 @@ describe Lacmus::Lab, "Lab" do
   	expect(result2).to be_nil
   end
 
+  # Moshe to Shai: probably not what you wanted to see here...
+  it "should render experiment before and after cookie expired (string)" do
+  	experiment_id = create_and_activate_experiment
+  	expect(Lacmus::Lab.user_belongs_to_control_group?).to be_false
+
+  	result = Lacmus::Lab.simple_experiment(experiment_id, "control", "experiment")
+p Lacmus::Experiment.exposed_experiments
+  	expect(result).to eq("experiment")
+  	Lacmus::Lab.clear_cookies
+
+  	result2 = Lacmus::Lab.simple_experiment(experiment_id, "control", "experiment")
+  	expect(result2).to eq("control")
+  end
+
+  it "should render control group before and after cookie expired (&block)" do
+  end
+
 end

@@ -4,7 +4,6 @@ require_relative 'fast_storage'
 module Lacmus
 	module Experiment
 
-
 		# Class variables
 		@@web_admin_prefs = {}
 		@@web_prefs_last_loaded_at = nil
@@ -12,7 +11,7 @@ module Lacmus
 		def self.expose_experiment(experiment_id)
 			return unless experiment_active?(experiment_id)
 
-			if user_never_exposed?(experiment_id)
+			if user_exposed_to_experiment?(experiment_id)
 				track_exposure(experiment_id)
 			end
 		end
@@ -20,10 +19,6 @@ module Lacmus
 		def self.active_experiments
 			Lacmus.fast_storage.smembers active_experiments_key
 		end
-
-		# def self.control_group
-		# 	get_group.to_i.zero?
-		# end
 
 		def self.experiment_active?(experiment_id)
 			Lacmus.fast_storage.sismember active_experiments_key, experiment_id
@@ -50,7 +45,7 @@ module Lacmus
 			uid
 		end
 
-		def self.user_never_exposed?(experiment_id)
+		def self.user_exposed_to_experiment?(experiment_id)
 			exposed_experiments.include?(experiment_id)
 		end
 
@@ -71,7 +66,6 @@ module Lacmus
 			Lacmus.fast_storage.incr view_counter_key(experiment_id, group)
 		end
 
-		# TODO: store in web_admin_prefs['experiment_slots_count'] and use it instead
 		def self.experiment_slots_count
 			Lacmus::SlotMachine.experiment_slots.count
 		end

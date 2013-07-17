@@ -4,10 +4,6 @@ module Lacmus
 		# Constants
 		MAX_COOKIE_TIME = Time.now.utc.to_i + (60 * 60 * 24 * 365)
 
-		def self.experiment_utils
-			Lacmus::Experiment
-		end
-
 		def self.render_control_version(experiment_id, &block)
 			empty_slot = user_belongs_to_empty_slot?
 			control_group = user_belongs_to_control_group?
@@ -81,28 +77,28 @@ module Lacmus
 		# gets the user's slot in the experiment slot list,
 		# having the first slot as the control group (equals to 0)
 		def self.slot_for_user
-			current_temp_user_id % Lacmus::Experiment.experiment_slots_count
+			current_temp_user_id % Lacmus::SlotMachine.experiment_slots.count
 		end
 
 		def self.temp_user_id_cookie
 			cookies['lacmus_tuid'] ||= {}
 		end
 
-		def self.build_tuid_cookie(temp_user_id)
-			cookies['lacmus_tuid'] = {:value => "#{temp_user_id}", :expires => MAX_COOKIE_TIME}
-		end
-
 		def self.experiment_cookie
 			cookies['lacmus_exps'] ||= {}
 		end
 
+		def self.build_tuid_cookie(temp_user_id)
+			cookies['lacmus_tuid'] = {:value => "#{temp_user_id}", :expires => MAX_COOKIE_TIME}
+		end
+
 		def self.update_experiment_cookie(experiment_id)
-			if experiment_cookie.nil?
+			if experiment_cookie[:value].nil?
 				exposed_experiments_str = ''
 			else
 				exposed_experiments_str = experiment_cookie.to_s
 			end
-			experiment_cookie = {:value => "#{exposed_experiments_str};#{experiment_id.to_s}", :expires => MAX_COOKIE_TIME}
+			cookies['lacmus_exps'] = {:value => "#{exposed_experiments_str};#{experiment_id.to_s}", :expires => MAX_COOKIE_TIME}
 		end
 
 		# this method generates a cache key to include in caches of the experiment host pages
