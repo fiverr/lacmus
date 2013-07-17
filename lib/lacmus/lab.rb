@@ -19,7 +19,7 @@ module Lacmus
 					mark_experiment_view(experiment_id)
 				end
 				
-				yield(block) and return
+				yield(block)
 			end
 		end
 

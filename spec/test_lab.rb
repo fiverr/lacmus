@@ -42,7 +42,11 @@ describe Lacmus::Lab, "Lab" do
     experiment_id
   end
 
-  it "different users should get different slots" do
+  def create_experiment
+  	Lacmus::SlotMachine.create_experiment(@experiment_name, @experiment_description)
+  end
+
+  it "should place different slots for different user ids" do
     create_and_activate_experiment
     first_user_slot = Lacmus::Lab.slot_for_user
     Lacmus::Lab.clear_cookies
@@ -54,20 +58,41 @@ describe Lacmus::Lab, "Lab" do
     expect(third_user_slot).to eq(first_user_slot)
   end
 
-  it "should render different results for control and experiment groups" do
+  it "should render different results (string) for control and experiment groups" do
     experiment_id = create_and_activate_experiment
-    puts Lacmus::Lab.current_temp_user_id
     result1 = Lacmus::Lab.simple_experiment(experiment_id, "control", "experiment")
     expect(Lacmus::Lab.user_belongs_to_control_group?).to be_false
     expect(result1).to eq("experiment")
     Lacmus::Lab.clear_cookies
-    puts Lacmus::Lab.current_temp_user_id
+
     result2 = Lacmus::Lab.simple_experiment(experiment_id, "control", "experiment")
     expect(Lacmus::Lab.user_belongs_to_control_group?).to be_true
     expect(result2).to eq("control")
   end
 
-  it "should not track exposed user twice" do
+  it "should render different results (&block) for control and experiment groups" do
+  	experiment_id = create_and_activate_experiment
+  	block1 = Proc.new {|i| "text for block1"}
+  	block2 = Proc.new {|i| "text for block2"}
+
+		expect(Lacmus::Lab.user_belongs_to_control_group?).to be_false
+  	result1 = Lacmus::Lab.render_control_version(experiment_id, &block1)
+		expect(result1).to be_nil
+
+  	result2 = Lacmus::Lab.render_experiment_version(experiment_id, &block2)
+  	expect(result2).to eq("text for block2")
+  	Lacmus::Lab.clear_cookies
+
+		expect(Lacmus::Lab.user_belongs_to_control_group?).to be_true
+  	result3 = Lacmus::Lab.render_control_version(experiment_id, &block1)
+  	expect(result3).to eq("text for block1")
+
+  	result4 = Lacmus::Lab.render_experiment_version(experiment_id, &block2)
+  	expect(result4).to be_nil
+  end
+
+  it "should render control group if experiment isn't active" do
+		# create_experiment
   end
 
 end
