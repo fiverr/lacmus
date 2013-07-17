@@ -14,6 +14,10 @@ module Lacmus
 			index
 		end
 
+		def self.restart_temp_user_ids
+			Lacmus.fast_storage.del tmp_user_id_key
+		end
+
 		def self.tmp_user_id_key
 			"#{Lacmus::Settings::LACMUS_NAMESPACE}-tmp-uid"
 		end

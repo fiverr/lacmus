@@ -2,7 +2,6 @@ module Lacmus
 	module Lab
 
 		# Constants
-		AMOUNT_OF_CONTROL_GROUPS = 1
 		MAX_COOKIE_TIME = Time.now.utc.to_i + (60 * 60 * 24 * 365)
 
 		def self.experiment_utils
@@ -48,6 +47,14 @@ module Lacmus
 			return experiment_version
 		end
 
+		def self.user_belongs_to_control_group?
+			slot_for_user == 0
+		end
+
+		def self.user_belongs_to_empty_slot?
+			Lacmus::SlotMachine.get_experiment_id_from_slot(slot_for_user) == -1
+		end
+
 		private 
 
 		def self.mark_control_group_view
@@ -60,20 +67,6 @@ module Lacmus
 			update_experiment_cookie(experiment_id)
 		end
 
-		def self.user_belongs_to_control_group?
-			slot_for_user == 0
-		end
-
-		def self.user_belongs_to_empty_slot?
-			Lacmus::SlotMachine.get_experiment_id_from_slot(slot_for_user) == -1
-		end
-
-		# gets the user's slot in the experiment slot list,
-		# having the first slot as the control group (equals to 0)
-		def self.slot_for_user
-			current_temp_user_id % (Lacmus::Experiment.experiment_slots_count + AMOUNT_OF_CONTROL_GROUPS)
-		end
-
 		# returns the temp user id from the cookies if present. If not,
 		# it generates a new one and creates a cookie for it
 		def self.current_temp_user_id
@@ -82,7 +75,13 @@ module Lacmus
 				uid = Lacmus::Utils.generate_tmp_user_id
 				build_tuid_cookie(uid)
 			end
-			uid
+			uid.to_i
+		end
+
+		# gets the user's slot in the experiment slot list,
+		# having the first slot as the control group (equals to 0)
+		def self.slot_for_user
+			current_temp_user_id % Lacmus::Experiment.experiment_slots_count
 		end
 
 		def self.temp_user_id_cookie

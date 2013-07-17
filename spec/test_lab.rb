@@ -36,22 +36,54 @@ describe Lacmus::Lab, "Lab" do
   end
   
   before(:each) do
+    Lacmus::Utils.restart_temp_user_ids
     Lacmus::SlotMachine.nuke_all_experiments
     Lacmus::Lab.clear_cookies
   end
 
-  it "show render a changing group each time" do
+  def create_and_activate_experiment
     experiment_id = Lacmus::SlotMachine.create_experiment(@experiment_name, @experiment_description)
     Lacmus::SlotMachine.activate_experiment(experiment_id)
-    result = Lacmus::Lab.simple_experiment(experiment_id, "group_a", "experiment_group")
-    puts "temp user id: #{Lacmus::Lab.cookies}"
-    puts result
+    experiment_id
   end
 
-  it "should not track user exposed to completed exeriment" do
+  it "different users should get different slots" do
+    create_and_activate_experiment
+    first_user_slot = Lacmus::Lab.slot_for_user
+    Lacmus::Lab.clear_cookies
+    second_user_slot = Lacmus::Lab.slot_for_user
+    Lacmus::Lab.clear_cookies
+    third_user_slot = Lacmus::Lab.slot_for_user
+    
+    expect(first_user_slot).not_to eq(second_user_slot)
+    expect(third_user_slot).to eq(first_user_slot)
+  end
+
+  it "should render different results for control and experiment groups" do
+    experiment_id = create_and_activate_experiment
+    puts Lacmus::Lab.current_temp_user_id
+    result1 = Lacmus::Lab.simple_experiment(experiment_id, "control", "experiment")
+    expect(Lacmus::Lab.user_belongs_to_control_group?).to be_false
+    expect(result1).to eq("experiment")
+    Lacmus::Lab.clear_cookies
+    puts Lacmus::Lab.current_temp_user_id
+    result2 = Lacmus::Lab.simple_experiment(experiment_id, "control", "experiment")
+    expect(Lacmus::Lab.user_belongs_to_control_group?).to be_true
+    expect(result2).to eq("control")
   end
 
   it "should not track exposed user twice" do
+    
   end
 
 end
+
+
+
+
+
+
+
+
+
+
