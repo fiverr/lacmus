@@ -92,7 +92,7 @@ describe Lacmus::Lab, "Lab" do
   end
 
   it "should render control group if experiment isn't active" do
-		# create_experiment
+		create_experiment
   end
 
 end
