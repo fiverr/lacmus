@@ -8,11 +8,6 @@ describe Lacmus::Lab, "Lab" do
     @experiment_name = "experimentum"
     @experiment_description = "dekaprius dela karma"
 
-    # Object.define_method("cookies=") do |value|
-    #   class_variable_set( "@cookies" , value )
-    # end
-    # Lacmus::Lab.class_variable_set(:@@cookies, {})
-
 		Lacmus::Lab.instance_eval do
 			@cookies = {}
 
@@ -73,17 +68,6 @@ describe Lacmus::Lab, "Lab" do
   end
 
   it "should not track exposed user twice" do
-    
   end
 
 end
-
-
-
-
-
-
-
-
-
-
