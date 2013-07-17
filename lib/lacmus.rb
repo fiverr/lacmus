@@ -1,7 +1,6 @@
 # require "lacmus/version"
 require 'lacmus/settings'
 require 'lacmus/fast_storage'
-require 'lacmus/client_storage'
 require 'lacmus/utils'
 require 'lacmus/lab'
 require 'lacmus/experiment'
@@ -15,10 +14,6 @@ module Lacmus
 
 	def self.fast_storage
 		@@fast_engine ||= Lacmus::FastStorage.instance
-	end
-
-	def self.client_storage
-		@@client_engine ||= Lacmus::ClientStorage
 	end
 
 end

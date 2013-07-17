@@ -63,10 +63,8 @@ module Lacmus
 			track_experiment_exposure(0)
 		end
 
-
 		def self.track_experiment_exposure(experiment_id)
 			Lacmus.fast_storage.incr view_counter_key(experiment_id)
-			Lacmus.client_storage.store_exposed_experiment(experiment_id)
 		end
 
 		def self.exposed_counter(experiment_id)
@@ -89,7 +87,7 @@ module Lacmus
 			Lacmus::SlotMachine.list_key_by_type(:active)
 		end
 
-		def self.view_counter_key(experiment_id, group)
+		def self.view_counter_key(experiment_id)
 			"#{Lacmus::Settings::LACMUS_NAMESPACE}-counter-#{experiment_id.to_s}"
 		end
 

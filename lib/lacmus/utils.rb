@@ -15,7 +15,7 @@ module Lacmus
 		end
 
 		def self.tmp_user_id_key
-			"#{LACMUS_NAMESPACE}-tmp-uid"
+			"#{Lacmus::Settings::LACMUS_NAMESPACE}-tmp-uid"
 		end
 
 		# picks a group for a given tmp user id

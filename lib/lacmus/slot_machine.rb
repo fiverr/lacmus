@@ -163,7 +163,7 @@ module Lacmus
 		def self.get_experiment_id_from_slot(slot)
 			# TODO: add caching for the slots - to be loaded from time to time
 			# into the application memory $ 
-			experiment_slots[slot]
+			experiment_slots[slot.to_i]
 		end
 
 		def self.set_updated_slots(slots)

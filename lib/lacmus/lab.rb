@@ -14,9 +14,9 @@ module Lacmus
 
 			if control_group || empty_slot
 				if control_group
-					track_control_group_exposure
+					mark_control_group_view
 				else
-					Lacmus::Experiment.track_experiment_exposure(experiment_id)
+					mark_experiment_view(experiment_id)
 				end
 				
 				yield(block) and return
@@ -29,7 +29,7 @@ module Lacmus
 
 			return if control_group || empty_slot
 
-			Lacmus::Experiment.track_experiment_exposure(experiment_id)
+			mark_experiment_view(experiment_id)
 			yield(block)
 		end
 
@@ -39,15 +39,25 @@ module Lacmus
 			control_group = user_belongs_to_control_group?
 
 			if empty_slot || control_group
-				Lacmus::Experiment.track_control_group_exposure if control_group
+				mark_control_group_view if control_group
 				return control_version
 			end
-
-			Lacmus::Experiment.track_experiment_exposure(experiment_id)
+			mark_experiment_view(experiment_id)
+			
 			return experiment_version
 		end
 
 		private 
+
+		def self.mark_control_group_view
+			Lacmus::Experiment.track_control_group_exposure
+			update_experiment_cookie(0)
+		end
+
+		def self.mark_experiment_view(experiment_id)
+			Lacmus::Experiment.track_experiment_exposure(experiment_id)
+			update_experiment_cookie(experiment_id)
+		end
 
 		def self.user_belongs_to_control_group?
 			slot_for_user == 0
@@ -60,18 +70,19 @@ module Lacmus
 		# gets the user's slot in the experiment slot list,
 		# having the first slot as the control group (equals to 0)
 		def self.slot_for_user
-			current_temp_user_id % (experiment_slots_count + AMOUNT_OF_CONTROL_GROUPS)
+			current_temp_user_id % (Lacmus::Experiment.experiment_slots_count + AMOUNT_OF_CONTROL_GROUPS)
 		end
 
-
 		def self.build_tuid_cookie(temp_user_id)
-			temp_user_id_cookie = {:value => "#{temp_user_id}", :expires => MAX_COOKIE_TIME}
+			binding.pry
+			@@cookies['lacmus_tuid'] = {:value => "#{temp_user_id}", :expires => MAX_COOKIE_TIME}
+			# temp_user_id_cookie = {:value => "#{temp_user_id}", :expires => MAX_COOKIE_TIME}
 		end
 
 		# returns the temp user id from the cookies if present. If not,
 		# it generates a new one and creates a cookie for it
 		def self.current_temp_user_id
-			uid = temp_user_id_cookie.value
+			uid = temp_user_id_cookie
 			if uid.nil?
 				uid = Lacmus::Utils.generate_tmp_user_id
 				build_tuid_cookie(uid)
@@ -91,7 +102,7 @@ module Lacmus
 			if experiment_cookie.nil?
 				exposed_experiments_str = ''
 			else
-				exposed_experiments_str = experiment_cookie.value.to_s
+				exposed_experiments_str = experiment_cookie.to_s
 			end
 			experiment_cookie = {:value => "#{exposed_experiments_str};#{experiment_id.to_s}", :expires => MAX_COOKIE_TIME}
 		end
@@ -107,7 +118,7 @@ module Lacmus
 			return '0' if [0,-1].include?(experiment_id)
 			return experiment_id.to_s
 		end
-		
+
 	end
 
 end
