@@ -74,16 +74,10 @@ module Lacmus
 			current_temp_user_id % (Lacmus::Experiment.experiment_slots_count + AMOUNT_OF_CONTROL_GROUPS)
 		end
 
-		def self.build_tuid_cookie(temp_user_id)
-			binding.pry
-			@@cookies['lacmus_tuid'] = {:value => "#{temp_user_id}", :expires => MAX_COOKIE_TIME}
-			# temp_user_id_cookie = {:value => "#{temp_user_id}", :expires => MAX_COOKIE_TIME}
-		end
-
 		# returns the temp user id from the cookies if present. If not,
 		# it generates a new one and creates a cookie for it
 		def self.current_temp_user_id
-			uid = temp_user_id_cookie
+			uid = temp_user_id_cookie[:value]
 			if uid.nil?
 				uid = Lacmus::Utils.generate_tmp_user_id
 				build_tuid_cookie(uid)
@@ -92,11 +86,15 @@ module Lacmus
 		end
 
 		def self.temp_user_id_cookie
-			cookies['lacmus_tuid']
+			cookies['lacmus_tuid'] ||= {}
+		end
+
+		def self.build_tuid_cookie(temp_user_id)
+			cookies['lacmus_tuid'] = {:value => "#{temp_user_id}", :expires => MAX_COOKIE_TIME}
 		end
 
 		def self.experiment_cookie
-			cookies['lacmus_exps']
+			cookies['lacmus_exps'] ||= {}
 		end
 
 		def self.update_experiment_cookie(experiment_id)

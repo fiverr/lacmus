@@ -11,22 +11,33 @@ describe Lacmus::Lab, "Lab" do
     # Object.define_method("cookies=") do |value|
     #   class_variable_set( "@cookies" , value )
     # end
-    Lacmus::Lab.class_variable_set(:@@cookies, {})
-    
+    # Lacmus::Lab.class_variable_set(:@@cookies, {})
 
-    Object.define_method(:cookies) do
-      @@cookies ||= {}
-    end
+		Lacmus::Lab.instance_eval do
+			@cookies = {}
 
-    Object.define_method(:clear_cookies) do
-      @@cookies = {}
-    end
+    	def self.[](index)
+			  @cookies[index]
+			end
+
+			def self.[]=(index,value)
+			  @cookies[index]=value
+			end
+
+			def self.cookies
+			  @cookies
+			end
+
+			def self.clear_cookies
+				@cookies = {}
+			end
+  	end
 
   end
   
   before(:each) do
     Lacmus::SlotMachine.nuke_all_experiments
-    # Lacmus::Lab.clear_cookies
+    Lacmus::Lab.clear_cookies
   end
 
   it "show render a changing group each time" do
