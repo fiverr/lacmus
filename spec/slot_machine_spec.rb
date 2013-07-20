@@ -84,12 +84,17 @@ describe Lacmus::SlotMachine, "Management Features" do
 	end
 
 	it "should destroy experiments if needed" do
-		experiment_id = create_and_activate_experiment
-		expect(Lacmus::SlotMachine.experiment_slots).to eq([0, experiment_id])
-		Lacmus::SlotMachine.destroy_experiment(:active, experiment_id)
-		expect(Lacmus::SlotMachine.experiment_slots).to eq([0, -1])
-		expect(Lacmus::SlotMachine.get_experiment_from(:active, experiment_id)).to eq({})
-		
+		Lacmus::SlotMachine.resize_slot_array(3)
+		experiment_id1 = create_and_activate_experiment
+		experiment_id2 = create_and_activate_experiment
+
+		expect(Lacmus::SlotMachine.experiment_slots[1]).to eq(experiment_id1)
+		Lacmus::SlotMachine.destroy_experiment(:active, experiment_id1)
+
+		expect(Lacmus::SlotMachine.experiment_slots[1]).to eq(-1)
+		expect(Lacmus::SlotMachine.get_experiment_from(:active, experiment_id1)).to eq({})
+
+		expect(Lacmus::SlotMachine.get_experiment_from(:active, experiment_id2)).not_to eq({})
 	end
 
 	it "removing an experiment from slots should work well" do 

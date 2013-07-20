@@ -1,9 +1,6 @@
 module Lacmus
 	module Settings
 
-		# Constants
-		LACMUS_NAMESPACE = "lcms"
-
 		# Global Variables
 		# TODO: Ugly and shitty code, refactor to make it something decent
 		$has_rails = defined?(Rails.root)
@@ -15,7 +12,10 @@ module Lacmus
 			ENV = "test"
 		end
 
-		puts "------> RAILS ROOT IS: #{ROOT}"
+		# Constants
+		LACMUS_NAMESPACE = "lcms#{ENV}"
+
+		puts "------> RAILS ROOT IS: #{ROOT} | ENV = #{ENV}"
 
 	end
 end
