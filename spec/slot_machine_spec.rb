@@ -83,6 +83,15 @@ describe Lacmus::SlotMachine, "Management Features" do
 		expect(Lacmus::SlotMachine.experiment_slots).to eq([0, experiment_id1])
 	end
 
+	it "should destroy experiments if needed" do
+		experiment_id = create_and_activate_experiment
+		expect(Lacmus::SlotMachine.experiment_slots).to eq([0, experiment_id])
+		Lacmus::SlotMachine.destroy_experiment(:active, experiment_id)
+		expect(Lacmus::SlotMachine.experiment_slots).to eq([0, -1])
+		expect(Lacmus::SlotMachine.get_experiment_from(:active, experiment_id)).to eq({})
+		
+	end
+
 	it "removing an experiment from slots should work well" do 
 		experiment_id1 = create_and_activate_experiment
 		expect(Lacmus::SlotMachine.experiment_slots).to eq([0, experiment_id1])

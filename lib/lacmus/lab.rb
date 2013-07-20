@@ -51,6 +51,18 @@ module Lacmus
 			Lacmus::SlotMachine.get_experiment_id_from_slot(slot_for_user) == -1
 		end
 
+		# this method generates a cache key to include in caches of the experiment host pages
+		# it should be used to prevent a situation where experiments are exposed the same for all users
+		# due to aciton caching.
+		#
+		# returns 0 for empty experiments and control group
+		# returns experiment id for users who are selected for an active experiment
+		def self.pizza_cache_key
+			experiment_id = Lacmus::SlotMachine.get_experiment_id_from_slot(slot_for_user).to_i
+			return '0' if [0,-1].include?(experiment_id)
+			return experiment_id.to_s
+		end
+
 		private 
 
 		def self.mark_control_group_view
@@ -100,19 +112,6 @@ module Lacmus
 			end
 			cookies['lacmus_exps'] = {:value => "#{exposed_experiments_str};#{experiment_id.to_s}", :expires => MAX_COOKIE_TIME}
 		end
-
-		# this method generates a cache key to include in caches of the experiment host pages
-		# it should be used to prevent a situation where experiments are exposed the same for all users
-		# due to aciton caching.
-		#
-		# returns 0 for empty experiments and control group
-		# returns experiment id for users who are selected for an active experiment
-		def self.experiment_cache_key
-			experiment_id = Lacmus::SlotMachine.get_experiment_id_from_slot(slot_for_user).to_i
-			return '0' if [0,-1].include?(experiment_id)
-			return experiment_id.to_s
-		end
-
 	end
 
 end

@@ -15,5 +15,7 @@ module Lacmus
 			ENV = "test"
 		end
 
+		puts "------> RAILS ROOT IS: #{ROOT}"
+
 	end
 end

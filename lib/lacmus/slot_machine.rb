@@ -127,6 +127,11 @@ module Lacmus
 			Lacmus.fast_storage.zrange list_key_by_type(list), 0, -1
 		end
 
+		# permanently deletes an axperiment
+		def self.destroy_experiment(list, experiment_id)
+			remove_experiment_from(list, experiment_id)
+		end
+
 		private
 
 		# here we look for an array stored in redis
