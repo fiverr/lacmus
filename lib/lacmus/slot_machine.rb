@@ -121,30 +121,26 @@ module Lacmus
 		# warning - all experiments, including running ones, 
 		# and completed ones will be permanently lost!
 		def self.nuke_all_experiments
-			get_experiments(:pending).each do |experiment_id|
-				nuke_all_experiment_keys(experiment_id)
+			get_experiments(:pending).each do |experiment|
+				id = Marshal.load(experiment)[:experiment_id]
+				Lacmus::Experiment.reset_experiment(id)
 			end
 
-			get_experiments(:active).each do |experiment_id|
-				nuke_all_experiment_keys(experiment_id)
+			get_experiments(:active).each do |experiment|
+				id = Marshal.load(experiment)[:experiment_id]
+				Lacmus::Experiment.reset_experiment(id)
 			end
 
-			get_experiments(:completed).each do |experiment_id|
-				nuke_all_experiment_keys(experiment_id)
+			get_experiments(:completed).each do |experiment|
+				id = Marshal.load(experiment)[:experiment_id]
+				Lacmus::Experiment.reset_experiment(id)
 			end
 
-			nuke_all_global_keys
-			reset_slots_to_defaults
-		end
-
-		def self.nuke_all_experiment_keys(experiment_id)
-			Lacmus::Experiment.reset_all(experiment_id)
-		end
-
-		def self.nuke_all_global_keys
 			Lacmus.fast_storage.del list_key_by_type(:pending)
 			Lacmus.fast_storage.del list_key_by_type(:active)
 			Lacmus.fast_storage.del list_key_by_type(:completed)
+
+			reset_slots_to_defaults
 		end
 
 		def self.resize_slot_array(new_size)
