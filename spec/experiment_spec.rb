@@ -68,7 +68,12 @@ describe Lacmus::Experiment, "Experiment" do
     Lacmus::SlotMachine.activate_experiment(experiment_id)
     Lacmus::Lab.simple_experiment(experiment_id, "control", "experiment")
     active_experiment_exposures = get_exposures_for_experiment(experiment_id) + get_exposures_for_experiment(experiment_id, true)
-    expect(pending_experiment_exposures).to eq(1)
+    expect(active_experiment_exposures).to eq(1)
+
+    Lacmus::SlotMachine.deactivate_experiment(experiment_id)
+    Lacmus::Lab.simple_experiment(experiment_id, "control", "experiment")
+    completed_experiment_exposures = get_exposures_for_experiment(experiment_id) + get_exposures_for_experiment(experiment_id, true)
+    expect(completed_experiment_exposures).to eq(1)
 
     # expect(Lacmus::Lab.user_belongs_to_control_group?).to be_false
     # expect(get_exposures_for_experiment(experiment_id, true)).to eq(0)

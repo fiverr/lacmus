@@ -193,8 +193,10 @@ module Lacmus
 			return if slots.empty?
 
 			index_to_replace = slots.index experiment_id
-			slots[index_to_replace] = -1
-			set_updated_slots(slots)
+			if index_to_replace
+				slots[index_to_replace] = -1
+				set_updated_slots(slots)
+			end
 		end
 
 		def self.get_experiment_id_from_slot(slot)
