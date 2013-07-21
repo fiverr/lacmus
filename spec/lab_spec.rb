@@ -114,7 +114,7 @@ describe Lacmus::Lab, "Lab" do
   	expect(Lacmus::Lab.user_belongs_to_control_group?).to be_false
 
   	result = Lacmus::Lab.simple_experiment(experiment_id, "control", "experiment")
-p Lacmus::Experiment.exposed_experiments
+# p Lacmus::Experiment.exposed_experimentexperiment_id_from_cookie
   	expect(result).to eq("experiment")
   	Lacmus::Lab.clear_cookies
 

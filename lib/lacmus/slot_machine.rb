@@ -26,7 +26,7 @@ module Lacmus
 		# 
 		# this is done by trying to find an empty experiment slot
 		# and moving the experiment from the pending list to the active
-		# ones list. 
+		# ones list. q
 		# 
 		# returns true on success, false on failure
 		def self.activate_experiment(experiment_id)
@@ -62,6 +62,20 @@ module Lacmus
 			Marshal.load(experiment.first)
 		end
 
+		# returns an experiment from either of the lists
+		def self.find_experiment(experiment_id)
+			experiment = {}
+			[:active, :pending, :completed].each do |list|
+				exp = get_experiment_from(list, experiment_id)
+				experiment = exp unless exp.empty?
+			end
+			experiment
+		end
+
+		def self.get_control_group
+			get_experiment_from(:active, 0)
+		end
+
 		# adds an experiment with metadata to a given list
 		# 
 		# list
@@ -89,7 +103,7 @@ module Lacmus
 		# accepts the following values: pending, active, completed
 		def self.remove_experiment_from(list, experiment_id)
 			Lacmus.fast_storage.zremrangebyscore list_key_by_type(list), experiment_id, experiment_id
-			if list == :active
+			if list.to_s == 'active'
 				remove_experiment_from_slot(experiment_id)
 			end
 		end	
@@ -124,7 +138,7 @@ module Lacmus
 		end
 
 		def self.nuke_all_experiment_keys(experiment_id)
-			Lacmus::KpiManager.reset_all(experiment_id)
+			Lacmus::Experiment.reset_all(experiment_id)
 		end
 
 		def self.nuke_all_global_keys
@@ -218,6 +232,10 @@ module Lacmus
 		def self.experiment_slots
 			result = Lacmus.fast_storage.get slot_usage_key
 			result ? Marshal.load(result) : init_slots
+		end
+
+		def self.experiment_slots_without_control_group
+			experiment_slots[1..-1]
 		end
 
 		def self.slot_usage_key

@@ -6,8 +6,6 @@ require 'lacmus/lab'
 require 'lacmus/experiment'
 require 'lacmus/slot_machine'
 require 'lacmus/helper'
-require 'lacmus/experiment_slice'
-require 'lacmus/kpi_manager'
 
 module Lacmus
 
