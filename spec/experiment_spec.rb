@@ -48,9 +48,8 @@ describe Lacmus::Experiment, "Experiment" do
 
 
 
-  it "should exposure counters for an active exeriment" do
+  it "should increment exposure counters for an active exeriment" do
     experiment_id = create_and_activate_experiment
-    puts experiment_id
     all_exposures_1 = get_exposures_for_experiment(experiment_id) + get_exposures_for_experiment(experiment_id, true)
     expect(all_exposures_1).to eq(0)
     Lacmus::Lab.simple_experiment(experiment_id, "control", "experiment")
@@ -58,6 +57,22 @@ describe Lacmus::Experiment, "Experiment" do
     expect(Lacmus::Lab.user_belongs_to_control_group?).to be_false
     expect(get_exposures_for_experiment(experiment_id, true)).to eq(0)
     expect(get_exposures_for_experiment(experiment_id)).to eq(1)
+  end
+
+  it "should not increment exposure counters for a pending or completed exeriment" do
+    experiment_id = Lacmus::SlotMachine.create_experiment(@experiment_name, @experiment_description)
+    Lacmus::Lab.simple_experiment(experiment_id, "control", "experiment")
+    pending_experiment_exposures = get_exposures_for_experiment(experiment_id) + get_exposures_for_experiment(experiment_id, true)
+    expect(pending_experiment_exposures).to eq(0)
+
+    Lacmus::SlotMachine.activate_experiment(experiment_id)
+    Lacmus::Lab.simple_experiment(experiment_id, "control", "experiment")
+    active_experiment_exposures = get_exposures_for_experiment(experiment_id) + get_exposures_for_experiment(experiment_id, true)
+    expect(pending_experiment_exposures).to eq(1)
+
+    # expect(Lacmus::Lab.user_belongs_to_control_group?).to be_false
+    # expect(get_exposures_for_experiment(experiment_id, true)).to eq(0)
+    # expect(get_exposures_for_experiment(experiment_id)).to eq(1)
   end
 
   # it "should increment kpi value when marking kpi" do
