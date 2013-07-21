@@ -19,10 +19,10 @@ module Lacmus
 			@id = id
 			@name = experiment[:name]
 			@description = experiment[:description]
-			@experiment_kpis = load_experiment_kpis
 			@control_kpis = load_experiment_kpis(true)
-			@control_analytics = load_experiment_analytics
-			@experiment_analytics = load_experiment_analytics(true)
+			@experiment_kpis = load_experiment_kpis
+			@control_analytics = load_experiment_analytics(true)
+			@experiment_analytics = load_experiment_analytics
 		end
 	
 		def available_kpis
@@ -37,6 +37,14 @@ module Lacmus
 			@experiment_kpis[kpi.to_s].to_i
 		end
 
+		def control_analytics
+			@control_analytics
+		end
+
+		def experiment_analytics
+			@experiment_analytics
+		end
+
 		def load_experiment_kpis(is_control = false)
 			kpis_hash = {}
 			kpis = Lacmus.fast_storage.zrange(self.class.kpi_key(@id, is_control), 0, -1, :with_scores => true)
@@ -47,18 +55,20 @@ module Lacmus
 		end
 
 		def load_experiment_analytics(is_control = false)
-			{exposures: (Lacmus.fast_storage.incr self.class.exposure_key(@id, is_control))}
+			{exposures: (Lacmus.fast_storage.get self.class.exposure_key(@id, is_control))}
 		end
 
 		def reset
-			Lacmus.fast_storage.multi do
-				Lacmus.fast_storage.del self.class.kpi_key(@id)
-				Lacmus.fast_storage.del self.class.kpi_key(@id, true)
-			end
+			self.class.reset_experiment(@id)
 		end
 
 		def self.reset_experiment(experiment_id)
-			Experiment.new(experiment_id).reset
+			Lacmus.fast_storage.multi do
+				Lacmus.fast_storage.del kpi_key(experiment_id)
+				Lacmus.fast_storage.del kpi_key(experiment_id, true)
+				Lacmus.fast_storage.del exposure_key(experiment_id)
+				Lacmus.fast_storage.del exposure_key(experiment_id, true)
+			end			
 		end
 
 		def self.mark_kpi!(kpi, experiment_id)
