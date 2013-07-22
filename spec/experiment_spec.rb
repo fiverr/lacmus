@@ -82,7 +82,6 @@ describe Lacmus::Experiment, "Experiment" do
   it "should allow to update an experiment" do
     experiment_id = create_and_activate_experiment
     experiment = Lacmus::Experiment.new(experiment_id)
-    # binding.pry
     expect(experiment.name).to eq(@experiment_name)
     expect(experiment.description).to eq(@experiment_description)
     expect(experiment.screenshot_url).to eq(@experiment_screenshot_url)

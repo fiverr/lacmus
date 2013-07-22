@@ -11,13 +11,13 @@ module Lacmus
 		attr_accessor :id
 		attr_accessor :name
 		attr_accessor :description
+		attr_accessor :start_time
+		attr_accessor	:end_time
+		attr_accessor	:status
 		attr_reader :control_kpis
 		attr_reader :experiment_kpis
 		attr_reader :control_analytics
 		attr_reader :experiment_analytics
-		attr_accessor :start_time
-		attr_accessor	:end_time
-		attr_accessor	:status
 
 		# Class variables
 		# TODO: move to settings
@@ -123,6 +123,19 @@ module Lacmus
 				Lacmus.fast_storage.incr exposure_key(experiment_id)
 			end
 		end
+
+		def control_conversion(kpi)
+			return 0 if !control_analytics || control_analytics[:exposures].to_i == 0
+			return 0 if !control_kpis || control_kpis[kpi].to_i == 0
+			(control_kpis[kpi].to_f / control_analytics[:exposures].to_f) * 100
+		end
+
+		def experiment_conversion(kpi)
+			return 0 if !experiment_analytics || experiment_analytics[:exposures].to_i == 0
+			return 0 if !experiment_kpis || experiment_kpis[kpi].to_i == 0
+			(experiment_kpis[kpi].to_f / experiment_analytics[:exposures].to_f) * 100
+		end
+
 
 		private
 

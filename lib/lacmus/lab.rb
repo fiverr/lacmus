@@ -38,7 +38,6 @@ module Lacmus
 			end
 
 			def simple_experiment(experiment_id, control_version, experiment_version)
-				# @cookies = request_data[:cookies]
 				empty_slot = user_belongs_to_empty_slot?
 				control_group = user_belongs_to_control_group?
 				belongs_to_experiment = user_belongs_to_experiment?(experiment_id)
@@ -47,7 +46,7 @@ module Lacmus
 					mark_experiment_view(experiment_id) if control_group
 					return control_version
 				end
-				
+
 				mark_experiment_view(experiment_id)
 				return experiment_version
 			end
@@ -69,7 +68,7 @@ module Lacmus
 			end
 
 			def mark_kpi!(kpi)
-				Lacmus::Experiment.mark_kpi!(kpi, experiment_id_from_cookie)
+				Lacmus::Experiment.mark_kpi!(kpi, experiment_cookie.to_i)
 			rescue
 				puts "#{__method__}: failed to mark_kpi for #{kpi}"
 			end
@@ -98,7 +97,6 @@ module Lacmus
 			# returns the temp user id from the cookies if present. If not,
 			# it generates a new one and creates a cookie for it
 			def current_temp_user_id
-				# binding.pry
 				return @uid_hash[:value] if @uid_hash && @uid_hash[:value]
 				
 				uid_cookie = temp_user_id_cookie
@@ -117,12 +115,8 @@ module Lacmus
 
 			# TODO: maybe we should also check that the experiment we get
 			# here is actually active - if its not - we remove it from the cookie
-			def experiment_id_from_cookie
-				experiment_cookie[:value].to_i
-			end
-
 			def temp_user_id_cookie
-				cookies['lacmus_tuid'] ||= {}
+				cookies['lacmus_tuid']
 			end
 
 			def experiment_cookie
