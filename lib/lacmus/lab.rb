@@ -28,7 +28,8 @@ module Lacmus
 			yield(block)
 		end
 
-		def self.simple_experiment(experiment_id, control_version, experiment_version)
+		def self.simple_experiment(experiment_id, control_version, experiment_version, request_data = {})
+			@cookies = request_data[:cookies]
 			empty_slot = user_belongs_to_empty_slot?
 			control_group = user_belongs_to_control_group?
 

@@ -158,14 +158,31 @@ module Lacmus
 		end
 
 		def self.resize_slot_array(new_size)
+			binding.pry
 			slot_array = experiment_slots
 			new_size = new_size.to_i
-			return false if new_size <= slot_array.count
 
-			slots_to_add = new_size - slot_array.count
-			slot_array += Array.new(slots_to_add){-1}
+			if new_size <= slot_array.count
+				last_used_index = find_last_used_slot(slot_array)
+				# if there is an experiment occupying a slot that is
+				# located after the size requested, we do not allow
+				return false if last_used_index > new_size
+				slot_array = slot_array[0...new_size]
+			else
+				slots_to_add = new_size - slot_array.count
+				slot_array += Array.new(slots_to_add){-1}
+			end
+			
 			Lacmus.fast_storage.set slot_usage_key, Marshal.dump(slot_array)
 			true
+		end
+
+		# [1,2,3,4,5,-1,-1,-1]
+		# [1,23,4,4,4,-1, 23, 43]
+		def self.find_last_used_slot(slot_array)
+			slot_array.reverse.each_with_index do |i, index|
+				return (slot_array.count - index) if i != -1
+			end
 		end
 
 		# permanently deletes an axperiment
