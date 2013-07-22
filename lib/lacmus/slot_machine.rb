@@ -112,7 +112,6 @@ module Lacmus
 		# accepts the following values: pending, active, completed
 		def self.remove_experiment_from(list, experiment_id)
 			Lacmus.fast_storage.zremrangebyscore list_key_by_type(list), experiment_id, experiment_id
-			Lacmus::Experiment.reset_experiment(experiment_id)
 
 			if list.to_s == 'active'
 				remove_experiment_from_slot(experiment_id)
@@ -164,6 +163,7 @@ module Lacmus
 		# permanently deletes an axperiment
 		def self.destroy_experiment(list, experiment_id)
 			remove_experiment_from(list, experiment_id)
+			Lacmus::Experiment.reset_experiment(experiment_id)
 		end
 
 		private
