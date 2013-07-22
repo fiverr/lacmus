@@ -21,7 +21,7 @@ module Lacmus
 		# @@web_admin_prefs = {}
 		# @@web_prefs_last_loaded_at = nil
 
-		def initialize(id)
+		def initialize(id = nil)
 			experiment = Lacmus::SlotMachine.find_experiment(id)
 
 			@id 									= id
@@ -31,6 +31,7 @@ module Lacmus
 			@experiment_kpis 			= load_experiment_kpis
 			@control_analytics 		= load_experiment_analytics(true)
 			@experiment_analytics = load_experiment_analytics
+			@errors = []
 		end
 	
 		def available_kpis

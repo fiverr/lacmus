@@ -102,8 +102,9 @@ module Lacmus
 		# removes an experiment from the active experiments list
 		# and clears it's slot
 		def self.deactivate_experiment(experiment_id)
-			move_experiment(experiment_id, :active, :completed)
+			binding.pry
 			remove_experiment_from_slot(experiment_id)
+			move_experiment(experiment_id, :active, :completed)
 		end
 
 		# removes an experiment from a list
@@ -196,7 +197,7 @@ module Lacmus
 			slots = experiment_slots
 			return if slots.empty?
 
-			index_to_replace = slots.index experiment_id
+			index_to_replace = slots.index experiment_id.to_i
 			if index_to_replace
 				slots[index_to_replace] = -1
 				set_updated_slots(slots)
