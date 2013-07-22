@@ -62,6 +62,15 @@ module Lacmus
 			Marshal.load(experiment.first)
 		end
 
+		def self.get_experiments(list)
+			experiments_ary = []
+			experiments = Lacmus.fast_storage.zrange list_key_by_type(list), 0, -1
+			experiments.each do |experiment|
+				experiments_ary << Marshal.load(experiment)
+			end
+			experiments_ary
+		end
+
 		# returns an experiment from either of the lists
 		def self.find_experiment(experiment_id)
 			experiment = {}
@@ -124,18 +133,15 @@ module Lacmus
 		# and completed ones will be permanently lost!
 		def self.nuke_all_experiments
 			get_experiments(:pending).each do |experiment|
-				id = Marshal.load(experiment)[:experiment_id]
-				Lacmus::Experiment.reset_experiment(id)
+				Lacmus::Experiment.reset_experiment(experiment[:experiment_id])
 			end
 
 			get_experiments(:active).each do |experiment|
-				id = Marshal.load(experiment)[:experiment_id]
-				Lacmus::Experiment.reset_experiment(id)
+				Lacmus::Experiment.reset_experiment(experiment[:experiment_id])
 			end
 
 			get_experiments(:completed).each do |experiment|
-				id = Marshal.load(experiment)[:experiment_id]
-				Lacmus::Experiment.reset_experiment(id)
+				Lacmus::Experiment.reset_experiment(experiment[:experiment_id])
 			end
 
 			Lacmus.fast_storage.del list_key_by_type(:pending)
@@ -153,10 +159,6 @@ module Lacmus
 			slot_array += Array.new(slots_to_add){-1}
 			Lacmus.fast_storage.set slot_usage_key, Marshal.dump(slot_array)
 			true
-		end
-
-		def self.get_experiments(list)
-			Lacmus.fast_storage.zrange list_key_by_type(list), 0, -1
 		end
 
 		# permanently deletes an axperiment
@@ -188,6 +190,8 @@ module Lacmus
 
 		# clears a slot for a new experiment, by turning
 		# the	previous experiment's id into 0
+		# if *index_to_replace* is nil, the experiment was already
+		# removed from experiment_slots.
 		def self.remove_experiment_from_slot(experiment_id)
 			slots = experiment_slots
 			return if slots.empty?

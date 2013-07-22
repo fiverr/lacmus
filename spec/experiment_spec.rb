@@ -46,8 +46,6 @@ describe Lacmus::Experiment, "Experiment" do
     obj.experiment_analytics[:exposures].to_i
   end
 
-
-
   it "should increment exposure counters for an active exeriment" do
     experiment_id = create_and_activate_experiment
     all_exposures_1 = get_exposures_for_experiment(experiment_id) + get_exposures_for_experiment(experiment_id, true)
