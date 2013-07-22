@@ -42,7 +42,7 @@ describe Lacmus::Experiment, "Experiment" do
 
   it "should log experiment" do
   	tmp_user_id = rand(1000000)
-p tmp_user_id
+
   	experiment_id = create_and_activate_experiment
   	experiment_id2 = create_and_activate_experiment
   	exposed_at = Time.now
@@ -51,8 +51,9 @@ p tmp_user_id
     Lacmus::ExperimentHistory.log_experiment(tmp_user_id, experiment_id, exposed_at)
     exps = Lacmus::ExperimentHistory.experiments(tmp_user_id)
     exps
+p exps
     # expect(Lacmus::ExperimentHistory.experiments(tmp_user_id))
-
+# [['adas', 23412312.0]]
     Lacmus::ExperimentHistory.log_experiment(tmp_user_id, experiment_id2, exposed_at2)
     p Lacmus::ExperimentHistory.experiments(tmp_user_id)
 
