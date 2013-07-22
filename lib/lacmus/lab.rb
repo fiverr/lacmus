@@ -1,3 +1,7 @@
+require_relative 'slot_machine'
+require_relative 'experiment'
+require_relative 'utils'
+
 module Lacmus
 	module Lab
 
@@ -66,8 +70,10 @@ module Lacmus
 		private 
 
 		def self.mark_experiment_view(experiment_id)
+			if experiment_cookie[:value].to_s == experiment_id.to_s
+				update_experiment_cookie(experiment_id)
+			end
 			Lacmus::Experiment.track_experiment_exposure(experiment_id)
-			update_experiment_cookie(experiment_id)
 		end
 
 		# returns the temp user id from the cookies if present. If not,
@@ -106,10 +112,8 @@ module Lacmus
 		end
 
 		def self.update_experiment_cookie(experiment_id)
-			if !experiment_cookie[:value].to_s == experiment_id.to_s
-				# previous_experiment_id = cookies['lacmus_exps']
-				cookies['lacmus_exps'] = {:value => experiment_id.to_s, :expires => MAX_COOKIE_TIME}	
-			end
+			Lacmus::ExperimentHistory.log_experiment(experiment_id, Time.now.utc)
+			cookies['lacmus_exps'] = {:value => experiment_id.to_s, :expires => MAX_COOKIE_TIME}	
 		end
 	end
 

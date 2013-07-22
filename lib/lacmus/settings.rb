@@ -13,7 +13,7 @@ module Lacmus
 		end
 
 		# Constants
-		LACMUS_NAMESPACE = "lcms#{ENV}"
+		LACMUS_NAMESPACE = "lcms-#{ENV}"
 
 		puts "------> RAILS ROOT IS: #{ROOT} | ENV = #{ENV}"
 

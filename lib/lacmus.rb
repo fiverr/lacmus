@@ -6,6 +6,7 @@ require 'lacmus/lab'
 require 'lacmus/experiment'
 require 'lacmus/slot_machine'
 require 'lacmus/helper'
+require 'lacmus/experiment_history'
 
 module Lacmus
 
@@ -14,6 +15,10 @@ module Lacmus
 
 	def self.fast_storage
 		@@fast_engine ||= Lacmus::FastStorage.instance
+	end
+
+	def self.namespace
+		Lacmus::Settings::LACMUS_NAMESPACE
 	end
 
 end

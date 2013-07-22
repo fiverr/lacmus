@@ -8,6 +8,14 @@ module Lacmus
 		attr_accessor :screenshot_url
 		attr_accessor :errors
 
+		attr_reader :id
+		attr_reader :name
+		attr_reader :description
+		attr_reader :control_kpis
+		attr_reader :experiment_kpis
+		attr_reader :control_analytics
+		attr_reader :experiment_analytics
+
 		# Class variables
 		# TODO: move to settings
 		# @@web_admin_prefs = {}
@@ -16,12 +24,12 @@ module Lacmus
 		def initialize(id)
 			experiment = Lacmus::SlotMachine.find_experiment(id)
 
-			@id = id
-			@name = experiment[:name]
-			@description = experiment[:description]
-			@control_kpis = load_experiment_kpis(true)
-			@experiment_kpis = load_experiment_kpis
-			@control_analytics = load_experiment_analytics(true)
+			@id 									= id
+			@name 								= experiment[:name]
+			@description 					= experiment[:description]
+			@control_kpis 				= load_experiment_kpis(true)
+			@experiment_kpis 			= load_experiment_kpis
+			@control_analytics 		= load_experiment_analytics(true)
 			@experiment_analytics = load_experiment_analytics
 		end
 	
@@ -37,14 +45,6 @@ module Lacmus
 			@experiment_kpis[kpi.to_s].to_i
 		end
 
-		def control_analytics
-			@control_analytics
-		end
-
-		def experiment_analytics
-			@experiment_analytics
-		end
-
 		def load_experiment_kpis(is_control = false)
 			kpis_hash = {}
 			kpis = Lacmus.fast_storage.zrange(self.class.kpi_key(@id, is_control), 0, -1, :with_scores => true)
@@ -56,6 +56,14 @@ module Lacmus
 
 		def load_experiment_analytics(is_control = false)
 			{exposures: (Lacmus.fast_storage.get self.class.exposure_key(@id, is_control))}
+		end
+
+		def safe_name(include_id = false)
+			safe_name = name.gsub(' ', '_').downcase
+			if include_id
+				safe_name += "_#{id}"
+			end
+			safe_name
 		end
 
 		def reset
