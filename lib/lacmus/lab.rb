@@ -106,8 +106,9 @@ module Lacmus
 		end
 
 		def self.update_experiment_cookie(experiment_id)
-			unless experiment_cookie[:value].to_s == experiment_id.to_s
-				cookies['lacmus_exps'] = {:value => experiment_id.to_s, :expires => MAX_COOKIE_TIME}
+			if !experiment_cookie[:value].to_s == experiment_id.to_s
+				# previous_experiment_id = cookies['lacmus_exps']
+				cookies['lacmus_exps'] = {:value => experiment_id.to_s, :expires => MAX_COOKIE_TIME}	
 			end
 		end
 	end
