@@ -8,13 +8,16 @@ module Lacmus
 		attr_accessor :screenshot_url
 		attr_accessor :errors
 
-		attr_reader :id
-		attr_reader :name
-		attr_reader :description
+		attr_accessor :id
+		attr_accessor :name
+		attr_accessor :description
 		attr_reader :control_kpis
 		attr_reader :experiment_kpis
 		attr_reader :control_analytics
 		attr_reader :experiment_analytics
+		attr_accessor :start_time
+		attr_accessor	:end_time
+		attr_accessor	:status
 
 		# Class variables
 		# TODO: move to settings
@@ -25,12 +28,16 @@ module Lacmus
 			experiment = Lacmus::SlotMachine.find_experiment(id)
 
 			@id 									= id
+			@status 							= experiment[:status]
 			@name 								= experiment[:name]
 			@description 					= experiment[:description]
-			@control_kpis 				= load_experiment_kpis(true)
-			@experiment_kpis 			= load_experiment_kpis
-			@control_analytics 		= load_experiment_analytics(true)
-			@experiment_analytics = load_experiment_analytics
+			@screenshot_url 			= experiment[:screenshot_url]
+			@start_time 					= experiment[:start_time_as_int]
+			@end_time 						= experiment[:end_time_as_int]
+			@control_kpis 				= load_experiment_kpis(true) || {}
+			@experiment_kpis 			= load_experiment_kpis || {}
+			@control_analytics 		= load_experiment_analytics(true) || {}
+			@experiment_analytics = load_experiment_analytics || {}
 			@errors = []
 		end
 	
@@ -38,13 +45,13 @@ module Lacmus
 			@control_kpis.merge(@experiment_kpis).keys
 		end
 
-		def control_kpis(kpi)
-			@control_kpis[kpi.to_s].to_i
-		end
+		# def control_kpis(kpi)
+		# 	@control_kpis[kpi.to_s].to_i
+		# end
 
-		def experiment_kpis(kpi)
-			@experiment_kpis[kpi.to_s].to_i
-		end
+		# def experiment_kpis(kpi)
+		# 	@experiment_kpis[kpi.to_s].to_i
+		# end
 
 		def load_experiment_kpis(is_control = false)
 			kpis_hash = {}
@@ -52,7 +59,7 @@ module Lacmus
 			kpis.each do |kpi_array|
 				kpis_hash[kpi_array[0]] = kpi_array[1]
 			end
-			kpis_hash
+			kpis_hash	
 		end
 
 		def load_experiment_analytics(is_control = false)
@@ -69,6 +76,23 @@ module Lacmus
 
 		def reset
 			self.class.reset_experiment(@id)
+		end
+
+		def save
+			original_experiment = Lacmus::SlotMachine.get_experiment_from(@status, @id)
+			metadata = {
+				:name => @name, 
+				:description => @description,
+				:screenshot_url => @screenshot_url
+			}
+
+			original_experiment.merge!(metadata)
+			id = original_experiment[:experiment_id]
+			
+			Lacmus.fast_storage.multi do
+				Lacmus.fast_storage.zremrangebyscore list_key_by_type(original_experiment[:status]), id, id
+				Lacmus.fast_storage.zadd list_key_by_type(original_experiment[:status]), id, Marshal.dump(original_experiment)
+			end
 		end
 
 		def self.reset_experiment(experiment_id)
@@ -112,6 +136,10 @@ module Lacmus
 
 		def self.is_control_group?(experiment_id)
 			experiment_id == 0
+		end
+
+		def list_key_by_type(list)
+			Lacmus::SlotMachine.list_key_by_type(list)
 		end
 
 		# TODO: remove me

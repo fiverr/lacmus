@@ -14,9 +14,10 @@ module Lacmus
 		# == Returns
 		# Integer representing the new experiment id.
 		#
-		def self.create_experiment(name, description)
+		def self.create_experiment(name, description, opts = {})
 			experiment_id 		 	= generate_experiment_id
-			experiment_metadada = {:experiment_id => experiment_id, :name => name, :description => description}
+			experiment_metadada = {:experiment_id => experiment_id, :name => name, :description => description, :status => :pending}
+			experiment_metadada.merge!(opts)
 
 			add_experiment_to(:pending, experiment_metadada)
 			experiment_id
@@ -44,6 +45,11 @@ module Lacmus
 			if from_list == :pending && to_list == :active
 				experiment.merge!({:start_time_as_int => Time.now.utc.to_i})
 			end
+
+			if from_list == :active && to_list == :completed
+				experiment.merge!({:end_time_as_int => Time.now.utc.to_i})
+			end
+
 			result = add_experiment_to(to_list, experiment)
 			return false unless result
 
@@ -90,6 +96,7 @@ module Lacmus
 		# list
 		# accepts the following values: pending, active, completed
 		def self.add_experiment_to(list, experiment_metadada)
+			experiment_metadada.merge!({:status => list.to_sym})
 			if list == :active
 				available_slot_id = find_available_slot
 				return false if available_slot_id.nil?
@@ -102,7 +109,6 @@ module Lacmus
 		# removes an experiment from the active experiments list
 		# and clears it's slot
 		def self.deactivate_experiment(experiment_id)
-			binding.pry
 			remove_experiment_from_slot(experiment_id)
 			move_experiment(experiment_id, :active, :completed)
 		end
@@ -153,6 +159,7 @@ module Lacmus
 
 		def self.resize_slot_array(new_size)
 			slot_array = experiment_slots
+			new_size = new_size.to_i
 			return false if new_size <= slot_array.count
 
 			slots_to_add = new_size - slot_array.count
@@ -166,6 +173,15 @@ module Lacmus
 			remove_experiment_from(list, experiment_id)
 			Lacmus::Experiment.reset_experiment(experiment_id)
 		end
+
+		# returns the appropriate key for the given list status
+		#
+		# list
+		# accepts the following values: pending, active, completed
+		def self.list_key_by_type(list)
+			"#{Lacmus.namespace}-#{list.to_s}-experiments"
+		end
+
 
 		private
 
@@ -249,14 +265,6 @@ module Lacmus
 
 		def self.generate_experiment_id
 			Lacmus.fast_storage.incr "#{Lacmus::Settings::LACMUS_NAMESPACE}-last-experiment-id"
-		end
-
-		# returns the appropriate key for the given list status
-		#
-		# list
-		# accepts the following values: pending, active, completed
-		def self.list_key_by_type(list)
-			"#{Lacmus::Settings::LACMUS_NAMESPACE}-#{list.to_s}-experiments"
 		end
 
 	end

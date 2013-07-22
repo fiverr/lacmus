@@ -6,6 +6,7 @@ describe Lacmus::Experiment, "Experiment" do
   
     @experiment_name = "experimentum"
     @experiment_description = "dekaprius dela karma"
+    @experiment_screenshot_url = "http://google.com"
 
     Lacmus::Lab.instance_eval do
       @cookies = {}
@@ -35,7 +36,7 @@ describe Lacmus::Experiment, "Experiment" do
   end
 
   def create_and_activate_experiment
-    experiment_id = Lacmus::SlotMachine.create_experiment(@experiment_name, @experiment_description)
+    experiment_id = Lacmus::SlotMachine.create_experiment(@experiment_name, @experiment_description, {:screenshot_url => @experiment_screenshot_url})
     move_result = Lacmus::SlotMachine.move_experiment(experiment_id, :pending, :active)
     experiment_id
   end
@@ -76,6 +77,25 @@ describe Lacmus::Experiment, "Experiment" do
     # expect(Lacmus::Lab.user_belongs_to_control_group?).to be_false
     # expect(get_exposures_for_experiment(experiment_id, true)).to eq(0)
     # expect(get_exposures_for_experiment(experiment_id)).to eq(1)
+  end
+
+  it "should allow to update an experiment" do
+    experiment_id = create_and_activate_experiment
+    experiment = Lacmus::Experiment.new(experiment_id)
+    # binding.pry
+    expect(experiment.name).to eq(@experiment_name)
+    expect(experiment.description).to eq(@experiment_description)
+    expect(experiment.screenshot_url).to eq(@experiment_screenshot_url)
+
+    experiment.name = "new name"
+    experiment.description = "new description"
+    experiment.screenshot_url = "new screenshot url"
+    experiment.save
+
+    loaded_experiment = Lacmus::Experiment.new(experiment_id)
+    expect(loaded_experiment.name).to eq("new name")
+    expect(loaded_experiment.description).to eq("new description")
+    expect(loaded_experiment.screenshot_url).to eq("new screenshot url")
   end
 
   # it "should increment kpi value when marking kpi" do
