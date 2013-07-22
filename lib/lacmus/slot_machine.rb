@@ -158,7 +158,6 @@ module Lacmus
 		end
 
 		def self.resize_slot_array(new_size)
-			binding.pry
 			slot_array = experiment_slots
 			new_size = new_size.to_i
 
