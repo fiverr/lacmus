@@ -48,12 +48,9 @@ describe Lacmus::Experiment, "Experiment" do
 
     Lacmus::ExperimentHistory.log_experiment(tmp_user_id, experiment_id)
     exps = Lacmus::ExperimentHistory.experiments(tmp_user_id)
-    exps
-p exps
     # expect(Lacmus::ExperimentHistory.experiments(tmp_user_id))
-# [['adas', 23412312.0]]
     Lacmus::ExperimentHistory.log_experiment(tmp_user_id, experiment_id2)
-    p Lacmus::ExperimentHistory.experiments(tmp_user_id)
+    # p Lacmus::ExperimentHistory.experiments(tmp_user_id)
 
     # expect(Lacmus::Lab.user_belongs_to_control_group?).to be_false
     # expect(get_exposures_for_experiment(experiment_id, true)).to eq(0)

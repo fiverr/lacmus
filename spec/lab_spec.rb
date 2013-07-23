@@ -40,6 +40,11 @@ describe Lacmus::Lab, "Lab" do
 		@uid_hash = {}
 	end
 
+	def reset_instance_variables
+		@user_experiment = nil
+  	@rendered_control_group = nil
+  end
+
   def create_experiment
   	Lacmus::SlotMachine.create_experiment(@experiment_name, @experiment_description)
   end
@@ -79,14 +84,17 @@ describe Lacmus::Lab, "Lab" do
   	result1 = render_control_version(experiment_id, &block1)
 		expect(result1).to be_nil
 
+  	reset_instance_variables
   	result2 = render_experiment_version(experiment_id, &block2)
   	expect(result2).to eq("text for block2")
   	clear_cookies
 
 		expect(user_belongs_to_control_group?).to be_true
+		reset_instance_variables
   	result3 = render_control_version(experiment_id, &block1)
   	expect(result3).to eq("text for block1")
 
+  	reset_instance_variables
   	result4 = render_experiment_version(experiment_id, &block2)
   	expect(result4).to be_nil
   end

@@ -31,7 +31,7 @@ module Lacmus
 				return if @rendered_control_group
 				return if user_belongs_to_empty_slot?
 				return if user_belongs_to_control_group?
-				return if user_belongs_to_experiment?(experiment_id)
+				return if !user_belongs_to_experiment?(experiment_id)
 
 				mark_experiment_view(experiment_id)
 				yield(block)
