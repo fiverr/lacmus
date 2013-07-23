@@ -16,6 +16,7 @@ module Lacmus
   	end
 
   	module InstanceMethods
+
 			# Constants
 			MAX_COOKIE_TIME = Time.now.utc + (60 * 60 * 24 * 365)
 
@@ -25,6 +26,9 @@ module Lacmus
 				mark_experiment_view(experiment_id)	if user_belongs_to_control_group?
 				@rendered_control_group = true
 				yield(block)
+			rescue Exception => e
+				puts "#{__method__}: Failed to render control version\n" <<
+						 "experiment_id: #{experiment_id}, Exception: #{e.inspect}"
 			end
 
 			def render_experiment_version(experiment_id, &block)	
@@ -35,6 +39,9 @@ module Lacmus
 
 				mark_experiment_view(experiment_id)
 				yield(block)
+			rescue Exception => e
+				puts "#{__method__}: Failed to render experiment version\n" <<
+						 "experiment_id: #{experiment_id}, Exception: #{e.inspect}"
 			end
 
 			def simple_experiment(experiment_id, control_version, experiment_version)
@@ -51,7 +58,34 @@ module Lacmus
 
 				mark_experiment_view(experiment_id)
 				return experiment_version
+			rescue Exception => e
+				puts "#{__method__}: Failed to render simple experiment\n" <<
+						 "experiment_id: #{experiment_id}, control_version: #{control_version}\n" <<
+						 "experiment_version: #{experiment_version}\n" <<
+						 "Exception: #{e.inspect}"
 			end
+
+			def mark_kpi!(kpi)
+				Lacmus::Experiment.mark_kpi!(kpi, current_experiment)
+			rescue Exception => e
+				puts "#{__method__}: Failed to mark kpi: #{kpi}, e: #{e.inspect}"
+			end
+
+			# this method generates a cache key to include in caches of the experiment host pages
+			# it should be used to prevent a situation where experiments are exposed the same for all users
+			# due to aciton caching.
+			#
+			# returns 0 for empty experiments and control group
+			# returns experiment id for users who are selected for an active experiment
+			def lacmus_cache_key
+				experiment_id = Lacmus::SlotMachine.get_experiment_id_from_slot(slot_for_user).to_i
+				return '0' if [0,-1].include?(experiment_id)
+				return experiment_id.to_s
+			rescue Exception => e
+				puts "#{__method__}: Failed to get lacmus_cache_key, e: #{e.inspect}"
+			end
+
+			private
 
 			def user_belongs_to_control_group?
 				slot_for_user == 0
@@ -68,26 +102,6 @@ module Lacmus
 			def user_belongs_to_empty_slot?
 				experiment_for_user == -1
 			end
-
-			def mark_kpi!(kpi)
-				Lacmus::Experiment.mark_kpi!(kpi, current_experiment)
-			rescue
-				puts "#{__method__}: failed to mark_kpi for #{kpi}"
-			end
-
-			# this method generates a cache key to include in caches of the experiment host pages
-			# it should be used to prevent a situation where experiments are exposed the same for all users
-			# due to aciton caching.
-			#
-			# returns 0 for empty experiments and control group
-			# returns experiment id for users who are selected for an active experiment
-			def pizza_cache_key
-				experiment_id = Lacmus::SlotMachine.get_experiment_id_from_slot(slot_for_user).to_i
-				return '0' if [0,-1].include?(experiment_id)
-				return experiment_id.to_s
-			end
-
-			private 
 
 			# Update the user's cookie with the current experiment
 			# he belongs to and increment the experiment's views.
