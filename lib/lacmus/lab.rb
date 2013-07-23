@@ -68,7 +68,7 @@ module Lacmus
 			end
 
 			def mark_kpi!(kpi)
-				Lacmus::Experiment.mark_kpi!(kpi, experiment_cookie.to_i)
+				Lacmus::Experiment.mark_kpi!(kpi, current_experiment)
 			rescue
 				puts "#{__method__}: failed to mark_kpi for #{kpi}"
 			end

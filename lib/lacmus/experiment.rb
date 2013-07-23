@@ -23,17 +23,22 @@ module Lacmus
 		# TODO: move to settings
 		# @@web_admin_prefs = {}
 		# @@web_prefs_last_loaded_at = nil
-
-		def initialize(id = nil)
-			experiment = Lacmus::SlotMachine.find_experiment(id)
+		def initialize(value)
+			if value.is_a?(Hash)
+				experiment = value
+				id = experiment[:experiment_id]
+			else
+				experiment = Lacmus::SlotMachine.find_experiment(value.to_i)
+				id = value
+			end
 
 			@id 									= id
 			@status 							= experiment[:status]
 			@name 								= experiment[:name]
 			@description 					= experiment[:description]
 			@screenshot_url 			= experiment[:screenshot_url]
-			@start_time 					= experiment[:start_time_as_int]
-			@end_time 						= experiment[:end_time_as_int]
+			@start_time 					= Time.at(experiment[:start_time_as_int]) if experiment[:start_time_as_int]
+			@end_time 						= Time.at(experiment[:end_time_as_int]) if experiment[:end_time_as_int]
 			@control_kpis 				= load_experiment_kpis(true) || {}
 			@experiment_kpis 			= load_experiment_kpis || {}
 			@control_analytics 		= load_experiment_analytics(true) || {}
@@ -44,14 +49,6 @@ module Lacmus
 		def available_kpis
 			@control_kpis.merge(@experiment_kpis).keys
 		end
-
-		# def control_kpis(kpi)
-		# 	@control_kpis[kpi.to_s].to_i
-		# end
-
-		# def experiment_kpis(kpi)
-		# 	@experiment_kpis[kpi.to_s].to_i
-		# end
 
 		def load_experiment_kpis(is_control = false)
 			kpis_hash = {}
@@ -155,44 +152,6 @@ module Lacmus
 			Lacmus::SlotMachine.list_key_by_type(list)
 		end
 
-		# TODO: remove me
-		# returns the temp user id from the cookies if present. If not,
-		# it generates a new one and creates a cookie for it
-		# def self.current_temp_user_id
-		# 	uid = tuid_cookie.value.to_i
-		# 	if uid.zero?
-		# 		uid = Lacmus::Utils.generate_tmp_user_id
-		# 		Lacmus::ClientStorage.build_tuid_cookie(uid)
-		# 	end
-		# 	uid
-		# end
-
-		# TODO: remove me
-		# def self.user_exposed_to_experiment?(experiment_id)
-		# 	exposed_experiments.include?(experiment_id)
-		# end
-
-		# TODO: remove me
-		# def self.exposed_experiments
-		# 	return [] unless Lacmus::Lab.experiment_cookie
-		# 	Lacmus::Lab.experiment_cookie
-		# end
-
-		# TODO: remove me
-		# def self.track_control_group_exposure
-		# 	track_experiment_exposure(0)
-		# end
-
-		# TODO: remove me
-		# def self.exposed_counter(experiment_id)
-		# 	Lacmus.fast_storage.incr view_counter_key(experiment_id, group)
-		# end
-
-		# TODO: remove me
-		# def self.experiment_slots_count
-		# 	Lacmus::SlotMachine.experiment_slots.count
-		# end
-
 		# TODO: move to settings
 		# def self.load_web_admin_prefs
 		# 	@@web_prefs_last_loaded_at = Time.now
@@ -201,6 +160,15 @@ module Lacmus
 
 		# ------------------------------------------------
 	
+		def self.all_from(list)
+			experiments = []
+			experiments_as_hash = Lacmus::SlotMachine.get_experiments(list)
+			experiments_as_hash.each do |exp_hash|
+				experiments << Experiment.new(exp_hash)
+			end
+			experiments
+		end
+
 		def self.kpi_key(experiment_id, is_control = false)
 			"#{Lacmus::Settings::LACMUS_NAMESPACE}-#{is_control}-kpis-#{experiment_id.to_s}"
 		end
