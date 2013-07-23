@@ -55,8 +55,10 @@ module Lacmus
 				slot_for_user == 0
 			end
 
+			# TODO: can possibly be cached using instance variable (@user_experiment ||= )
+			# make sure to reset this variable when moving experiments.
 			def experiment_for_user
-				@user_experiment ||= Lacmus::SlotMachine.get_experiment_id_from_slot(slot_for_user)
+				Lacmus::SlotMachine.get_experiment_id_from_slot(slot_for_user)
 			end
 
 			def user_belongs_to_experiment?(experiment_id)
