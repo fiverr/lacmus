@@ -1,5 +1,5 @@
 require 'lacmus'
-
+include Lacmus::Lab
 describe Lacmus::Lab, "Lab" do
 
 	before(:all) do
@@ -59,7 +59,7 @@ describe Lacmus::Lab, "Lab" do
 
   it "should render different results for control and experiment groups (string)" do
     experiment_id = create_and_activate_experiment
-    result1 = Lacmus::Lab.simple_experiment(experiment_id, "control", "experiment")
+    result1 = simple_experiment(experiment_id, "control", "experiment")
     expect(Lacmus::Lab.user_belongs_to_control_group?).to be_false
     expect(result1).to eq("experiment")
     Lacmus::Lab.clear_cookies

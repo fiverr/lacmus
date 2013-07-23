@@ -1,4 +1,5 @@
 require 'lacmus'
+include Lacmus::Lab
 
 describe Lacmus::Experiment, "Experiment" do
 
@@ -7,26 +8,26 @@ describe Lacmus::Experiment, "Experiment" do
     @experiment_name = "experimentum"
     @experiment_description = "dekaprius dela karma"
     @experiment_screenshot_url = "http://google.com"
+    @cookies = {}
+    # self.class.instance_eval do
+    #   @cookies = {}
 
-    Lacmus::Lab.instance_eval do
-      @cookies = {}
+    #   def self.[](index)
+    #     @cookies[index]
+    #   end
 
-      def self.[](index)
-        @cookies[index]
-      end
+    #   def self.[]=(index,value)
+    #     @cookies[index]=value
+    #   end
 
-      def self.[]=(index,value)
-        @cookies[index]=value
-      end
+    #   def self.cookies
+    #     @cookies
+    #   end
 
-      def self.cookies
-        @cookies
-      end
-
-      def self.clear_cookies
-        @cookies = {}
-      end
-    end
+    #   def self.clear_cookies
+    #     @cookies = {}
+    #   end
+    # end
 
   end
   
@@ -41,6 +42,23 @@ describe Lacmus::Experiment, "Experiment" do
     experiment_id
   end
 
+  def [](index)
+    @cookies[index]
+  end
+
+  def []=(index,value)
+    @cookies[index]=value
+  end
+
+  def cookies
+    @cookies
+  end
+
+  def clear_cookies
+    @cookies = {}
+  end
+
+
   def get_exposures_for_experiment(experiment_id, is_control = false)
     obj = Lacmus::Experiment.new(experiment_id)
     return obj.control_analytics[:exposures].to_i if is_control
@@ -51,26 +69,26 @@ describe Lacmus::Experiment, "Experiment" do
     experiment_id = create_and_activate_experiment
     all_exposures_1 = get_exposures_for_experiment(experiment_id) + get_exposures_for_experiment(experiment_id, true)
     expect(all_exposures_1).to eq(0)
-    Lacmus::Lab.simple_experiment(experiment_id, "control", "experiment")
+    simple_experiment(experiment_id, "control", "experiment")
 
-    expect(Lacmus::Lab.user_belongs_to_control_group?).to be_false
+    expect(user_belongs_to_control_group?).to be_false
     expect(get_exposures_for_experiment(experiment_id, true)).to eq(0)
     expect(get_exposures_for_experiment(experiment_id)).to eq(1)
   end
 
   it "should not increment exposure counters for a pending or completed exeriment" do
     experiment_id = Lacmus::SlotMachine.create_experiment(@experiment_name, @experiment_description)
-    Lacmus::Lab.simple_experiment(experiment_id, "control", "experiment")
+    simple_experiment(experiment_id, "control", "experiment")
     pending_experiment_exposures = get_exposures_for_experiment(experiment_id) + get_exposures_for_experiment(experiment_id, true)
     expect(pending_experiment_exposures).to eq(0)
 
     Lacmus::SlotMachine.activate_experiment(experiment_id)
-    Lacmus::Lab.simple_experiment(experiment_id, "control", "experiment")
+    simple_experiment(experiment_id, "control", "experiment")
     active_experiment_exposures = get_exposures_for_experiment(experiment_id) + get_exposures_for_experiment(experiment_id, true)
     expect(active_experiment_exposures).to eq(1)
 
     Lacmus::SlotMachine.deactivate_experiment(experiment_id)
-    Lacmus::Lab.simple_experiment(experiment_id, "control", "experiment")
+    simple_experiment(experiment_id, "control", "experiment")
     completed_experiment_exposures = get_exposures_for_experiment(experiment_id) + get_exposures_for_experiment(experiment_id, true)
     expect(completed_experiment_exposures).to eq(1)
 

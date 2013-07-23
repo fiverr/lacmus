@@ -100,7 +100,9 @@ module Lacmus
 				return @uid_hash[:value] if @uid_hash && @uid_hash[:value]
 				
 				uid_cookie = temp_user_id_cookie
-				return uid_cookie.to_i if uid_cookie
+				
+				return uid_cookie.to_i if uid_cookie && uid_cookie.respond_to?(:to_i) 
+				return uid_cookie[:value].to_i if uid_cookie && uid_cookie.respond_to?(:keys) 
 
 				new_tmp_id = Lacmus::Utils.generate_tmp_user_id
 				@uid_hash = build_tuid_cookie(new_tmp_id)
