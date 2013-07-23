@@ -1,38 +1,20 @@
 require 'lacmus'
 include Lacmus::Lab
+
 describe Lacmus::Lab, "Lab" do
 
 	before(:all) do
   
     @experiment_name = "experimentum"
     @experiment_description = "dekaprius dela karma"
-
-		Lacmus::Lab.instance_eval do
-			@cookies = {}
-
-    	def self.[](index)
-			  @cookies[index]
-			end
-
-			def self.[]=(index,value)
-			  @cookies[index]=value
-			end
-
-			def self.cookies
-			  @cookies
-			end
-
-			def self.clear_cookies
-				@cookies = {}
-			end
-  	end
+    @cookies = {}
 
   end
   
   before(:each) do
     Lacmus::Utils.restart_temp_user_ids
     Lacmus::SlotMachine.nuke_all_experiments
-    Lacmus::Lab.clear_cookies
+    @cookies = {}
   end
 
   def create_and_activate_experiment
@@ -41,17 +23,36 @@ describe Lacmus::Lab, "Lab" do
     experiment_id
   end
 
+  def [](index)
+	  @cookies[index]
+	end
+
+	def []=(index,value)
+	  @cookies[index]=value
+	end
+
+	def cookies
+	  @cookies
+	end
+
+	def clear_cookies
+		@cookies = {}
+		@uid_hash = {}
+	end
+
   def create_experiment
   	Lacmus::SlotMachine.create_experiment(@experiment_name, @experiment_description)
   end
 
   it "should place different slots for different user ids" do
     create_and_activate_experiment
-    first_user_slot = Lacmus::Lab.slot_for_user
-    Lacmus::Lab.clear_cookies
-    second_user_slot = Lacmus::Lab.slot_for_user
-    Lacmus::Lab.clear_cookies
-    third_user_slot = Lacmus::Lab.slot_for_user
+    first_user_slot = slot_for_user
+
+    clear_cookies
+    second_user_slot = slot_for_user
+
+    clear_cookies
+    third_user_slot = slot_for_user
     
     expect(first_user_slot).not_to eq(second_user_slot)
     expect(third_user_slot).to eq(first_user_slot)

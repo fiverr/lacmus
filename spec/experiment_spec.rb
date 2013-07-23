@@ -58,6 +58,9 @@ describe Lacmus::Experiment, "Experiment" do
     @cookies = {}
   end
 
+  def reset_instance_variables
+  	@user_experiment = nil
+  end
 
   def get_exposures_for_experiment(experiment_id, is_control = false)
     obj = Lacmus::Experiment.new(experiment_id)
@@ -82,11 +85,13 @@ describe Lacmus::Experiment, "Experiment" do
     pending_experiment_exposures = get_exposures_for_experiment(experiment_id) + get_exposures_for_experiment(experiment_id, true)
     expect(pending_experiment_exposures).to eq(0)
 
+    reset_instance_variables
     Lacmus::SlotMachine.activate_experiment(experiment_id)
     simple_experiment(experiment_id, "control", "experiment")
     active_experiment_exposures = get_exposures_for_experiment(experiment_id) + get_exposures_for_experiment(experiment_id, true)
     expect(active_experiment_exposures).to eq(1)
 
+    reset_instance_variables
     Lacmus::SlotMachine.deactivate_experiment(experiment_id)
     simple_experiment(experiment_id, "control", "experiment")
     completed_experiment_exposures = get_exposures_for_experiment(experiment_id) + get_exposures_for_experiment(experiment_id, true)
