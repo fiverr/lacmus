@@ -43,7 +43,9 @@ module Lacmus
 				belongs_to_experiment = user_belongs_to_experiment?(experiment_id)
 
 				if empty_slot || control_group || !belongs_to_experiment
-					mark_experiment_view(experiment_id) if control_group
+					if control_group && user_belongs_to_experiment?(experiment_id)
+						mark_experiment_view(experiment_id)
+					end
 					return control_version
 				end
 
@@ -87,10 +89,14 @@ module Lacmus
 
 			private 
 
+			# Update the user's cookie with the current experiment
+			# he belongs to and increment the experiment's views.
+			# This should only happen once per user, so views
+			# are actually unique views.
 			def mark_experiment_view(experiment_id)
-				if current_experiment.to_i != experiment_id.to_i
-					update_experiment_cookie(experiment_id)
-				end
+				return if current_experiment.to_i == experiment_id.to_i
+
+				update_experiment_cookie(experiment_id)
 				Lacmus::Experiment.track_experiment_exposure(experiment_id)
 			end
 
