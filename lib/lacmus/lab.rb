@@ -9,6 +9,14 @@ module Lacmus
     	base.class_eval do
       	extend ClassMethods
       	include InstanceMethods
+
+      	if $has_rails
+      		base.helper_method :render_control_version
+      		base.helper_method :render_experiment_version
+      		base.helper_method :mark_kpi!
+      		base.helper_method :simple_experiment
+      		base.helper_method :lacmus_cache_key
+      	end
     	end
   	end
 
