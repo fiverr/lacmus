@@ -116,10 +116,13 @@ module Lacmus
 			# This should only happen once per user, so views
 			# are actually unique views.
 			def mark_experiment_view(experiment_id)
-				return if current_experiment.to_i == experiment_id.to_i
+				if current_experiment.to_i != experiment_for_user.to_i
+					update_experiment_cookie
+				end
 
-				update_experiment_cookie(experiment_id)
-				Lacmus::Experiment.track_experiment_exposure(experiment_id)
+				if experiment_for_user.to_i == experiment_id.to_i				
+					Lacmus::Experiment.track_experiment_exposure(experiment_id)
+				end
 			end
 
 			# returns the temp user id from the cookies if present. If not,
@@ -163,9 +166,9 @@ module Lacmus
 				cookies['lacmus_tuid'] = {:value => temp_user_id, :expires => MAX_COOKIE_TIME}
 			end
 
-			def update_experiment_cookie(experiment_id)
-				Lacmus::ExperimentHistory.log_experiment(experiment_id, Time.now.utc)
-				cookies['lacmus_exps'] = {:value => experiment_id.to_s, :expires => MAX_COOKIE_TIME}	
+			def update_experiment_cookie
+				Lacmus::ExperimentHistory.log_experiment(experiment_for_user, Time.now.utc)
+				cookies['lacmus_exps'] = {:value => experiment_for_user.to_s, :expires => MAX_COOKIE_TIME}	
 			end
 		end
 	end
