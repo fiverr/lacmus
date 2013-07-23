@@ -90,7 +90,7 @@ module Lacmus
 			private 
 
 			def mark_experiment_view(experiment_id)
-				if experiment_cookie.to_i != experiment_id.to_i
+				if current_experiment.to_i != experiment_id.to_i
 					update_experiment_cookie(experiment_id)
 				end
 				Lacmus::Experiment.track_experiment_exposure(experiment_id)
@@ -109,6 +109,12 @@ module Lacmus
 				new_tmp_id = Lacmus::Utils.generate_tmp_user_id
 				@uid_hash = build_tuid_cookie(new_tmp_id)
 				@uid_hash[:value]
+			end
+
+			def current_experiment
+				return unless experiment_cookie
+				return experiment_cookie.to_i if experiment_cookie.respond_to?(:to_i) 
+				return experiment_cookie[:value].to_i if experiment_cookie.respond_to?(:keys) 
 			end
 
 			# gets the user's slot in the experiment slot list,
