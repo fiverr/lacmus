@@ -60,6 +60,7 @@ describe Lacmus::Experiment, "Experiment" do
 
   def reset_instance_variables
   	@user_experiment = nil
+  	reset_active_experiments_cache
   end
 
   def get_exposures_for_experiment(experiment_id, is_control = false)
@@ -67,6 +68,10 @@ describe Lacmus::Experiment, "Experiment" do
     return obj.control_analytics[:exposures].to_i if is_control
     obj.experiment_analytics[:exposures].to_i
   end
+
+  def reset_active_experiments_cache
+		$__lcms__loaded_at_as_int = 0
+	end
 
   it "should increment exposure counters for an active exeriment" do
     experiment_id = create_and_activate_experiment

@@ -126,7 +126,7 @@ module Lacmus
 			end
 
 			def should_update_experiment_cookie?(experiment_id)
-				return true if current_experiment.blank?
+				return true if current_experiment.nil?
 				return true if current_experiment != experiment_for_user.to_i
 				return true if server_reset_requested?(experiment_id)
 			end
@@ -139,7 +139,7 @@ module Lacmus
 			end
 
 			def mark_control_view(experiment_id)
-				return unless current_experiment.blank?
+				return unless current_experiment.nil?
 				
 				update_experiment_cookie(experiment_id)
 				Lacmus::Experiment.track_experiment_exposure(experiment_id)

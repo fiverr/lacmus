@@ -165,7 +165,7 @@ module Lacmus
 		end
 
 		def self.resize_slot_array(new_size)
-			slot_array = experiment_slot_ids
+			slot_array = experiment_slots
 			new_size = new_size.to_i
 
 			if new_size <= slot_array.count
@@ -176,9 +176,9 @@ module Lacmus
 				slot_array = slot_array[0...new_size]
 			else
 				slots_to_add = new_size - slot_array.count
-				slot_array += Array.new(slots_to_add){-1}
+				slot_array += Array.new(slots_to_add){EMPTY_SLOT_HASH}
 			end
-			
+
 			Lacmus.fast_storage.set slot_usage_key, Marshal.dump(slot_array)
 			true
 		end
@@ -236,7 +236,7 @@ module Lacmus
 			slots = experiment_slots
 			return if slots.empty?
 
-			index_to_replace = slots.index experiment_id.to_i
+			index_to_replace = slots.find_index {|i| i[:experiment_id].to_i == experiment_id.to_i}
 			if index_to_replace
 				slots[index_to_replace] = EMPTY_SLOT_HASH
 				set_updated_slots(slots)
@@ -256,8 +256,8 @@ module Lacmus
 		# clear all experiment slots, leaving the number of slots untouched
 		def self.clear_experiment_slot_ids
 			result = Marshal.load(Lacmus.fast_storage.get slot_usage_key)
-			clean_array = Array.new(result.count){-1}
-			clean_array[0] = 0
+			slots_to_add = result.size - 1
+			clean_array = [CONTROL_SLOT_HASH] + Array.new(slots_to_add){EMPTY_SLOT_HASH}
 			Lacmus.fast_storage.set slot_usage_key, Marshal.dump(clean_array)
 		end
 
@@ -267,7 +267,7 @@ module Lacmus
 		end
 
 		def self.init_slots
-			$__lcms__active_experiments = DEFAULT_SLOT_HASH
+			$__lcms__active_experiments = DEFAULT_SLOT_HASH.dup
 			$__lcms__loaded_at_as_int = Time.now.utc.to_i
 			Lacmus.fast_storage.set slot_usage_key, Marshal.dump($__lcms__active_experiments)
 		end

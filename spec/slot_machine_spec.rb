@@ -14,8 +14,7 @@ describe Lacmus::SlotMachine, "Management Features" do
   before(:each) do
     Lacmus::SlotMachine.nuke_all_experiments
     Lacmus::SlotMachine.reset_slots_to_defaults
-  #   $__lcms__loaded_at_as_int   = 0
-		# $__lcms__active_experiments = nil
+    reset_active_experiments_cache
   end
 
   def create_and_activate_experiment
@@ -24,7 +23,7 @@ describe Lacmus::SlotMachine, "Management Features" do
 		experiment_id
   end
 
-  def self.reset_active_experiments_cache
+  def reset_active_experiments_cache
 		$__lcms__loaded_at_as_int = 0
 	end
 
@@ -74,9 +73,8 @@ describe Lacmus::SlotMachine, "Management Features" do
 	# ----------------------------------------------------------------
 
 	it "slot machine should start empty with expected number of slots" do 
-		$__lcms__loaded_at_as_int   = 0
-		$__lcms__active_experiments = nil
-binding.pry
+		# $__lcms__loaded_at_as_int   = 0
+		# $__lcms__active_experiments = nil
 		expect(Lacmus::SlotMachine.experiment_slot_ids).to eq(SLOT_MACHINE_STARTING_STATE)
 	end
 
@@ -95,12 +93,14 @@ binding.pry
 
 	it "should destroy experiments if needed" do
 		Lacmus::SlotMachine.resize_slot_array(3)
+		reset_active_experiments_cache
 		experiment_id1 = create_and_activate_experiment
 		experiment_id2 = create_and_activate_experiment
 
 		expect(Lacmus::SlotMachine.experiment_slot_ids[1]).to eq(experiment_id1)
 		Lacmus::SlotMachine.destroy_experiment(:active, experiment_id1)
 
+		reset_active_experiments_cache
 		expect(Lacmus::SlotMachine.experiment_slot_ids[1]).to eq(-1)
 		expect(Lacmus::SlotMachine.get_experiment_from(:active, experiment_id1)).to eq({})
 
@@ -120,6 +120,7 @@ binding.pry
 		expect(Lacmus::SlotMachine.experiment_slot_ids).to eq([0, experiment_id1])
 
 		Lacmus::SlotMachine.resize_slot_array(5)
+		reset_active_experiments_cache
 		expect(Lacmus::SlotMachine.experiment_slot_ids).to eq([0, experiment_id1, -1, -1, -1])
 
 		experiment_id2 = create_and_activate_experiment
@@ -131,15 +132,18 @@ binding.pry
 		expect(Lacmus::SlotMachine.experiment_slot_ids).to eq([0, experiment_id1])
 
 		Lacmus::SlotMachine.clear_experiment_slot_ids
+		reset_active_experiments_cache
 		expect(Lacmus::SlotMachine.experiment_slot_ids).to eq(SLOT_MACHINE_STARTING_STATE)
 
 		Lacmus::SlotMachine.resize_slot_array(5)
+		reset_active_experiments_cache
 		Lacmus::SlotMachine.clear_experiment_slot_ids
 		expect(Lacmus::SlotMachine.experiment_slot_ids).to eq([0, -1, -1, -1, -1])
 	end
 
 	it "slot machine should return the first available slot, even if in the middle of the stack" do 
 		Lacmus::SlotMachine.resize_slot_array(5)
+		reset_active_experiments_cache
 		experiment_id1 = create_and_activate_experiment
 		experiment_id2 = create_and_activate_experiment
 		experiment_id3 = create_and_activate_experiment
