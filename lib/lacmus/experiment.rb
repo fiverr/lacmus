@@ -71,8 +71,8 @@ module Lacmus
 			safe_name
 		end
 
-		def reset
-			self.class.reset_experiment(@id)
+		def nuke
+			self.class.nuke_experiment(@id)
 		end
 
 		def save
@@ -92,7 +92,7 @@ module Lacmus
 			end
 		end
 
-		def self.reset_experiment(experiment_id)
+		def self.nuke_experiment(experiment_id)
 			Lacmus.fast_storage.multi do
 				Lacmus.fast_storage.del kpi_key(experiment_id)
 				Lacmus.fast_storage.del kpi_key(experiment_id, true)

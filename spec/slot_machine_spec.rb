@@ -158,4 +158,18 @@ describe Lacmus::SlotMachine, "Management Features" do
 		experiment_id1 = create_and_activate_experiment
 		expect(Lacmus::SlotMachine.find_available_slot).to be_nil
 	end
+
+	it "check that resetting an experiment works" do
+		experiment_id = create_and_activate_experiment
+		creation_time = Time.at(Lacmus::SlotMachine.experiment_slots[1][:start_time_as_int].to_i)
+		expect(creation_time).to be > (Time.now - 1)
+		# now we reset the experiment
+		sleep 3
+		Lacmus::SlotMachine.restart_experiment(experiment_id)
+		update_time = Time.at(Lacmus::SlotMachine.experiment_slots[1][:start_time_as_int].to_i)
+		expect(update_time).to be > creation_time
+	end
+
 end
+
+
