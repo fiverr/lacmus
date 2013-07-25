@@ -15,6 +15,7 @@ describe Lacmus::Lab, "Lab" do
     Lacmus::Utils.restart_temp_user_ids
     Lacmus::SlotMachine.nuke_all_experiments
     @cookies = {}
+    reset_active_experiments_cache
   end
 
   def create_and_activate_experiment
@@ -22,6 +23,10 @@ describe Lacmus::Lab, "Lab" do
     Lacmus::SlotMachine.activate_experiment(experiment_id)
     experiment_id
   end
+
+  def reset_active_experiments_cache
+		$__lcms__loaded_at_as_int = 0
+	end
 
   def [](index)
 	  @cookies[index]
