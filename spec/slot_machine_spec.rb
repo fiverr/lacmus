@@ -13,6 +13,9 @@ describe Lacmus::SlotMachine, "Management Features" do
   
   before(:each) do
     Lacmus::SlotMachine.nuke_all_experiments
+    Lacmus::SlotMachine.reset_slots_to_defaults
+  #   $__lcms__loaded_at_as_int   = 0
+		# $__lcms__active_experiments = nil
   end
 
   def create_and_activate_experiment
@@ -20,6 +23,10 @@ describe Lacmus::SlotMachine, "Management Features" do
 		move_result = Lacmus::SlotMachine.move_experiment(experiment_id, :pending, :active)
 		experiment_id
   end
+
+  def self.reset_active_experiments_cache
+		$__lcms__loaded_at_as_int = 0
+	end
 
 	it "should create experiments as pending" do 
 		experiment_id = Lacmus::SlotMachine.create_experiment(@experiment_name, @experiment_description)
@@ -47,7 +54,7 @@ describe Lacmus::SlotMachine, "Management Features" do
 
 		expect(experiment_pending).to eq({})
 		expect(experiment_active[:name]).to eq(@experiment_name)
-		expect(Lacmus::SlotMachine.experiment_slots[1]).not_to be_nil
+		expect(Lacmus::SlotMachine.experiment_slot_ids[1]).not_to be_nil
 	end
 
 	it "should move experiment from active to pending" do 
@@ -67,20 +74,23 @@ describe Lacmus::SlotMachine, "Management Features" do
 	# ----------------------------------------------------------------
 
 	it "slot machine should start empty with expected number of slots" do 
-		expect(Lacmus::SlotMachine.experiment_slots).to eq(SLOT_MACHINE_STARTING_STATE)
+		$__lcms__loaded_at_as_int   = 0
+		$__lcms__active_experiments = nil
+binding.pry
+		expect(Lacmus::SlotMachine.experiment_slot_ids).to eq(SLOT_MACHINE_STARTING_STATE)
 	end
 
 	it "place experiment in slot should fill the slots with experiments" do 
 		experiment_id = create_and_activate_experiment
-		expect(Lacmus::SlotMachine.experiment_slots).not_to eq(SLOT_MACHINE_STARTING_STATE)
-		expect(Lacmus::SlotMachine.experiment_slots).to eq([0, experiment_id])
+		expect(Lacmus::SlotMachine.experiment_slot_ids).not_to eq(SLOT_MACHINE_STARTING_STATE)
+		expect(Lacmus::SlotMachine.experiment_slot_ids).to eq([0, experiment_id])
 	end
 
 	it "should not override slot when taken" do
 		experiment_id1 = create_and_activate_experiment
 		experiment_id2 = create_and_activate_experiment
 
-		expect(Lacmus::SlotMachine.experiment_slots).to eq([0, experiment_id1])
+		expect(Lacmus::SlotMachine.experiment_slot_ids).to eq([0, experiment_id1])
 	end
 
 	it "should destroy experiments if needed" do
@@ -88,10 +98,10 @@ describe Lacmus::SlotMachine, "Management Features" do
 		experiment_id1 = create_and_activate_experiment
 		experiment_id2 = create_and_activate_experiment
 
-		expect(Lacmus::SlotMachine.experiment_slots[1]).to eq(experiment_id1)
+		expect(Lacmus::SlotMachine.experiment_slot_ids[1]).to eq(experiment_id1)
 		Lacmus::SlotMachine.destroy_experiment(:active, experiment_id1)
 
-		expect(Lacmus::SlotMachine.experiment_slots[1]).to eq(-1)
+		expect(Lacmus::SlotMachine.experiment_slot_ids[1]).to eq(-1)
 		expect(Lacmus::SlotMachine.get_experiment_from(:active, experiment_id1)).to eq({})
 
 		expect(Lacmus::SlotMachine.get_experiment_from(:active, experiment_id2)).not_to eq({})
@@ -99,33 +109,33 @@ describe Lacmus::SlotMachine, "Management Features" do
 
 	it "removing an experiment from slots should work well" do 
 		experiment_id1 = create_and_activate_experiment
-		expect(Lacmus::SlotMachine.experiment_slots).to eq([0, experiment_id1])
+		expect(Lacmus::SlotMachine.experiment_slot_ids).to eq([0, experiment_id1])
 
 		Lacmus::SlotMachine.remove_experiment_from_slot(experiment_id1)
-		expect(Lacmus::SlotMachine.experiment_slots).to eq(SLOT_MACHINE_STARTING_STATE)
+		expect(Lacmus::SlotMachine.experiment_slot_ids).to eq(SLOT_MACHINE_STARTING_STATE)
 	end
 
 	it "resizing slot array should work and leave the exising items intact" do 
 		experiment_id1 = create_and_activate_experiment
-		expect(Lacmus::SlotMachine.experiment_slots).to eq([0, experiment_id1])
+		expect(Lacmus::SlotMachine.experiment_slot_ids).to eq([0, experiment_id1])
 
 		Lacmus::SlotMachine.resize_slot_array(5)
-		expect(Lacmus::SlotMachine.experiment_slots).to eq([0, experiment_id1, -1, -1, -1])
+		expect(Lacmus::SlotMachine.experiment_slot_ids).to eq([0, experiment_id1, -1, -1, -1])
 
 		experiment_id2 = create_and_activate_experiment
-		expect(Lacmus::SlotMachine.experiment_slots).to eq([0, experiment_id1, experiment_id2, -1, -1])
+		expect(Lacmus::SlotMachine.experiment_slot_ids).to eq([0, experiment_id1, experiment_id2, -1, -1])
 	end
 
 	it "clearing the slot machine should bring it back to defaults" do 
 		experiment_id1 = create_and_activate_experiment
-		expect(Lacmus::SlotMachine.experiment_slots).to eq([0, experiment_id1])
+		expect(Lacmus::SlotMachine.experiment_slot_ids).to eq([0, experiment_id1])
 
-		Lacmus::SlotMachine.clear_experiment_slots
-		expect(Lacmus::SlotMachine.experiment_slots).to eq(SLOT_MACHINE_STARTING_STATE)
+		Lacmus::SlotMachine.clear_experiment_slot_ids
+		expect(Lacmus::SlotMachine.experiment_slot_ids).to eq(SLOT_MACHINE_STARTING_STATE)
 
 		Lacmus::SlotMachine.resize_slot_array(5)
-		Lacmus::SlotMachine.clear_experiment_slots
-		expect(Lacmus::SlotMachine.experiment_slots).to eq([0, -1, -1, -1, -1])
+		Lacmus::SlotMachine.clear_experiment_slot_ids
+		expect(Lacmus::SlotMachine.experiment_slot_ids).to eq([0, -1, -1, -1, -1])
 	end
 
 	it "slot machine should return the first available slot, even if in the middle of the stack" do 
@@ -135,9 +145,9 @@ describe Lacmus::SlotMachine, "Management Features" do
 		experiment_id3 = create_and_activate_experiment
 
 		Lacmus::SlotMachine.remove_experiment_from_slot(experiment_id2)
-		expect(Lacmus::SlotMachine.experiment_slots).to eq([0, experiment_id1, -1, experiment_id3, -1])
+		expect(Lacmus::SlotMachine.experiment_slot_ids).to eq([0, experiment_id1, -1, experiment_id3, -1])
 		experiment_id4 = create_and_activate_experiment
-		expect(Lacmus::SlotMachine.experiment_slots).to eq([0, experiment_id1, experiment_id4, experiment_id3, -1])
+		expect(Lacmus::SlotMachine.experiment_slot_ids).to eq([0, experiment_id1, experiment_id4, experiment_id3, -1])
 	end
 
 	it "full slot machine should not return an available slot" do 		

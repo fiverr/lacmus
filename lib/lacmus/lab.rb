@@ -31,7 +31,7 @@ module Lacmus
 			def render_control_version(experiment_id, &block)
 				return if user_belongs_to_experiment?(experiment_id)
 
-				mark_experiment_view(experiment_id)	if user_belongs_to_control_group?
+				mark_control_view(experiment_id)	if user_belongs_to_control_group?
 				@rendered_control_group = true
 				yield(block)
 			rescue Exception => e
@@ -116,13 +116,33 @@ module Lacmus
 			# This should only happen once per user, so views
 			# are actually unique views.
 			def mark_experiment_view(experiment_id)
-				if current_experiment.to_i != experiment_for_user.to_i
-					update_experiment_cookie
+				if should_update_experiment_cookie?(experiment_id)
+					update_experiment_cookie(experiment_id)
 				end
 
 				if experiment_for_user.to_i == experiment_id.to_i				
 					Lacmus::Experiment.track_experiment_exposure(experiment_id)
 				end
+			end
+
+			def should_update_experiment_cookie?(experiment_id)
+				return true if current_experiment.blank?
+				return true if current_experiment != experiment_for_user.to_i
+				return true if server_reset_requested?(experiment_id)
+			end
+
+			# TODO: finish this
+			def server_reset_requested?(experiment_id)
+				# Lacmus::SlotMachine
+				# Lacmus::Experiment.new(experiment_id)
+				# exposed_experiments
+			end
+
+			def mark_control_view(experiment_id)
+				return unless current_experiment.blank?
+				
+				update_experiment_cookie(experiment_id)
+				Lacmus::Experiment.track_experiment_exposure(experiment_id)
 			end
 
 			# returns the temp user id from the cookies if present. If not,
@@ -146,32 +166,72 @@ module Lacmus
 				return experiment_cookie[:value].to_i if experiment_cookie.respond_to?(:keys) 
 			end
 
+			def exposed_at
+				Time.at(exposure_cookie.to_i)
+			end
+
 			# gets the user's slot in the experiment slot list,
 			# having the first slot as the control group (equals to 0)
 			def slot_for_user
-				current_temp_user_id % Lacmus::SlotMachine.experiment_slots.count
+				current_temp_user_id % Lacmus::SlotMachine.experiment_slot_ids.count
 			end
 
 			# TODO: maybe we should also check that the experiment we get
 			# here is actually active - if its not - we remove it from the cookie
 			def temp_user_id_cookie
-				cookies['lacmus_tuid']
+				cookies['lc_tuid']
 			end
 
 			def experiment_cookie
-				cookies['lacmus_exps']
+				cookies['lc_xpmnt']
 			end
 
+			def group_prefix
+				return "c" if user_belongs_to_control_group?
+				return "x" if user_belongs_to_empty_slot?
+				return "e"
+			end
+
+			# returns hash {'234' => 2013-07-25 13:00:36 +0300}
+			# the exposed experiments cookie has a first cell that hints of the user's
+			# slot group (control, empty slot or experiment) followed by the experiments the user was exposed to
+			#
+			# == Example for cookie: [c|234;29837462924]
+			def exposed_experiments
+				experiments_hash = {}
+				if cookies['lc_xpmnt']
+					raw_experiment_array = cookies['lc_xpmnt'].split("|").collect{|pair| pair.split(";").collect{|val|val.to_i}}
+				else
+					[]
+				end
+
+				result.each do |experiment_id, exposed_at_as_int|
+					experiments_hash.merge!({experiment_id.to_s => Time.at(exposed_at_as_int.to_i)})
+				end
+				experiments_hash
+			end
+
+			def add_exposure_to_cookie(experiment_id)
+				new_data = "#{experiment_id};#{Time.now.utc.to_i}"
+				if cookies['lc_xpmnt']
+					data = "#{cookies['lc_xpmnt']}|#{new_data}"
+				else
+					data = "#{group_prefix}|#{new_data}"
+				end
+				cookies['lc_xpmnt'] = {:value => data, :expires => MAX_COOKIE_TIME}	
+			end
+			
 			def build_tuid_cookie(temp_user_id)
-				cookies['lacmus_tuid'] = {:value => temp_user_id, :expires => MAX_COOKIE_TIME}
+				cookies['lc_tuid'] = {:value => temp_user_id, :expires => MAX_COOKIE_TIME}
 			end
 
-			def update_experiment_cookie
+			# set the experiment that was exposed to the user, and when it was exposed
+			def update_experiment_cookie(experiment_id)
 				Lacmus::ExperimentHistory.log_experiment(experiment_for_user, Time.now.utc)
-				cookies['lacmus_exps'] = {:value => experiment_for_user.to_s, :expires => MAX_COOKIE_TIME}	
+				add_exposure_to_cookie(experiment_id)
 			end
-		end
-	end
 
+		end # of InstanceMethods
 
-end
+	end # of Lab
+end # of Lacmus

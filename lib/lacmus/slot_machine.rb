@@ -7,7 +7,14 @@ module Lacmus
 	module SlotMachine
 
 		# Constants
-		DEFAULT_SLOTS_ARRAY = [0,-1]
+		SLOT_PRELOAD_INTERVAL = 60
+		CONTROL_SLOT_HASH = {:experiment_id => 0, :start_time_as_int => 0}
+		EMPTY_SLOT_HASH   = {:experiment_id => -1, :start_time_as_int => 0}
+		DEFAULT_SLOT_HASH = [CONTROL_SLOT_HASH, EMPTY_SLOT_HASH]
+
+		# Glboal Variables
+		$__lcms__loaded_at_as_int   = 0
+		$__lcms__active_experiments = nil
 
 		# Create a new experiment and add it to the pending list.
 		#
@@ -158,7 +165,7 @@ module Lacmus
 		end
 
 		def self.resize_slot_array(new_size)
-			slot_array = experiment_slots
+			slot_array = experiment_slot_ids
 			new_size = new_size.to_i
 
 			if new_size <= slot_array.count
@@ -206,7 +213,7 @@ module Lacmus
 		# the 0 represents an open slot
 		# returns nil if no slots are available
 		def self.find_available_slot
-			slots = experiment_slots
+			slots = experiment_slot_ids
 			slots.index -1
 		end
 
@@ -215,23 +222,23 @@ module Lacmus
 		# and the function will return false.
 		def self.place_experiment_in_slot(experiment_id, slot)
 			slots = experiment_slots
-			return unless slots[slot] == -1
+			return unless slots[slot] == EMPTY_SLOT_HASH
 
-			slots[slot] = experiment_id
+			slots[slot] = {:experiment_id => experiment_id, :start_time_as_int => Time.now.utc.to_i}
 			set_updated_slots(slots)
 		end
 
 		# clears a slot for a new experiment, by turning
 		# the	previous experiment's id into 0
 		# if *index_to_replace* is nil, the experiment was already
-		# removed from experiment_slots.
+		# removed from experiment_slot_ids.
 		def self.remove_experiment_from_slot(experiment_id)
 			slots = experiment_slots
 			return if slots.empty?
 
 			index_to_replace = slots.index experiment_id.to_i
 			if index_to_replace
-				slots[index_to_replace] = -1
+				slots[index_to_replace] = EMPTY_SLOT_HASH
 				set_updated_slots(slots)
 			end
 		end
@@ -239,7 +246,7 @@ module Lacmus
 		def self.get_experiment_id_from_slot(slot)
 			# TODO: add caching for the slots - to be loaded from time to time
 			# into the application memory $ 
-			experiment_slots[slot.to_i]
+			experiment_slot_ids[slot.to_i]
 		end
 
 		def self.set_updated_slots(slots)
@@ -247,7 +254,7 @@ module Lacmus
 		end
 
 		# clear all experiment slots, leaving the number of slots untouched
-		def self.clear_experiment_slots
+		def self.clear_experiment_slot_ids
 			result = Marshal.load(Lacmus.fast_storage.get slot_usage_key)
 			clean_array = Array.new(result.count){-1}
 			clean_array[0] = 0
@@ -260,19 +267,33 @@ module Lacmus
 		end
 
 		def self.init_slots
-			slot_array = DEFAULT_SLOTS_ARRAY
-			Lacmus.fast_storage.set slot_usage_key, Marshal.dump(slot_array)
-			slot_array
+			$__lcms__active_experiments = DEFAULT_SLOT_HASH
+			$__lcms__loaded_at_as_int = Time.now.utc.to_i
+			Lacmus.fast_storage.set slot_usage_key, Marshal.dump($__lcms__active_experiments)
 		end
 
-		# TODO: cache this value in class variable
 		def self.experiment_slots
-			result = Lacmus.fast_storage.get slot_usage_key
-			result ? Marshal.load(result) : init_slots
+			if $__lcms__loaded_at_as_int.to_i > (Time.now.utc.to_i - SLOT_PRELOAD_INTERVAL)
+				$__lcms__active_experiments
+			else
+				slot_hash_from_redis = Lacmus.fast_storage.get slot_usage_key
+				slot_hash_from_redis = Marshal.load(slot_hash_from_redis) if slot_hash_from_redis
+				if slot_hash_from_redis
+					$__lcms__active_experiments = slot_hash_from_redis
+					$__lcms__loaded_at_as_int = Time.now.utc.to_i
+				else
+					init_slots
+				end
+			end
+			$__lcms__active_experiments
 		end
 
-		def self.experiment_slots_without_control_group
-			experiment_slots[1..-1]
+		def self.experiment_slot_ids
+			experiment_slots.collect{|slot| slot[:experiment_id]}
+		end
+
+		def self.experiment_slot_ids_without_control_group
+			experiment_slot_ids[1..-1]
 		end
 
 		def self.slot_usage_key
