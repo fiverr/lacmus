@@ -116,7 +116,6 @@ module Lacmus
 		# removes an experiment from the active experiments list
 		# and clears it's slot
 		def self.deactivate_experiment(experiment_id)
-			binding.pry
 			remove_experiment_from_slot(experiment_id)
 			move_experiment(experiment_id, :active, :completed)
 		end
