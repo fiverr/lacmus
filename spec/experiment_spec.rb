@@ -59,6 +59,12 @@ describe Lacmus::Experiment, "Experiment" do
     experiment.experiment_kpis
   end
 
+  def simulate_unique_visitor_exposure(experiment_id)
+    clear_cookies
+    simple_experiment(experiment_id, "control", "experiment")
+  end
+
+
   def reset_active_experiments_cache
 		$__lcms__loaded_at_as_int = 0
 	end
@@ -91,10 +97,6 @@ describe Lacmus::Experiment, "Experiment" do
     simple_experiment(experiment_id, "control", "experiment")
     completed_experiment_exposures = get_exposures_for_experiment(experiment_id) + get_exposures_for_experiment(experiment_id, true)
     expect(completed_experiment_exposures).to eq(1)
-
-    # expect(Lacmus::Lab.user_belongs_to_control_group?).to be_false
-    # expect(get_exposures_for_experiment(experiment_id, true)).to eq(0)
-    # expect(get_exposures_for_experiment(experiment_id)).to eq(1)
   end
 
   it "should allow to update an experiment" do
@@ -127,17 +129,39 @@ describe Lacmus::Experiment, "Experiment" do
 
   it "should calculate conversion correctly" do
     experiment_id = create_and_activate_experiment
-    simple_experiment(experiment_id, "control", "experiment")
-    clear_cookies
-    simple_experiment(experiment_id, "control", "experiment")
-    clear_cookies
-    simple_experiment(experiment_id, "control", "experiment")
-    clear_cookies
-    simple_experiment(experiment_id, "control", "experiment")
-    clear_cookies
-    Lacmus::Experiment.mark_kpi!('ftb', experiment_id)
-    Lacmus::Experiment.new(experiment_id).enough_participants_tested?('ftb')
-    Lacmus::Experiment.mark_kpi!('ftb', experiment_id)
+
+    10.times do 
+      simulate_unique_visitor_exposure(experiment_id)
+    end
+
+    2.times do
+      Lacmus::Experiment.mark_kpi!('ftb', experiment_id)
+    end
+
+    conversion = Lacmus::Experiment.new(experiment_id).experiment_conversion('ftb')
+    expect(conversion).to eq(20)
   end
+
+  it "should only add KPIs and exposures to the viewed experiment" do
+    Lacmus::SlotMachine.worker_cache_active = false
+    Lacmus::SlotMachine.resize_slot_array(3)
+    
+    experiment_id1 = create_and_activate_experiment
+    experiment_id2 = create_and_activate_experiment
+    
+    simulate_unique_visitor_exposure(experiment_id1)
+    simulate_unique_visitor_exposure(experiment_id1)
+    simulate_unique_visitor_exposure(experiment_id1)
+    Lacmus::Experiment.mark_kpi!('ftb', experiment_id1)
+    Lacmus::Experiment.mark_kpi!('ftb', experiment_id1)
+    Lacmus::Experiment.mark_kpi!('ftb', experiment_id1)
+
+    expect(get_exposures_for_experiment(experiment_id1).to_i).to eq(3)
+    expect(get_exposures_for_experiment(experiment_id2).to_i).to eq(0)
+
+    expect(get_kpis_for_experiment(experiment_id1)['ftb'].to_i).to eq(3)
+    expect(get_kpis_for_experiment(experiment_id2)['ftb'].to_i).to eq(0)
+  end
+
 
 end
