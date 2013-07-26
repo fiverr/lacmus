@@ -7,14 +7,15 @@ module Lacmus
 	module SlotMachine
 
 		# Constants
-		SLOT_PRELOAD_INTERVAL = 60
-		CONTROL_SLOT_HASH = {:experiment_id => 0, :start_time_as_int => 0}
+			CONTROL_SLOT_HASH = {:experiment_id => 0, :start_time_as_int => 0}
 		EMPTY_SLOT_HASH   = {:experiment_id => -1, :start_time_as_int => 0}
 		DEFAULT_SLOT_HASH = [CONTROL_SLOT_HASH, EMPTY_SLOT_HASH]
 
-		# Glboal Variables
-		$__lcms__loaded_at_as_int   = 0
-		$__lcms__active_experiments = nil
+		# Glboal Worker-Level Variables (Worker Cache)
+		$__lcms__worker_cache_active		= true
+		$__lcms__worker_cache_interval 	= 60
+		$__lcms__loaded_at_as_int   		= 0
+		$__lcms__active_experiments 		= nil
 
 		# Create a new experiment and add it to the pending list.
 		#
@@ -64,6 +65,10 @@ module Lacmus
 			true
 		end
 
+		# def self.reset_experiment(experiment_id)
+		# 	# experiment = self.get_experiment_from(:active, experiment_id)
+		# end
+
 		# returns an experimend from one of the lists
 		#
 		# list
@@ -96,6 +101,15 @@ module Lacmus
 
 		def self.get_control_group
 			get_experiment_from(:active, 0)
+		end
+
+		# restart an experiment
+		def self.restart_experiment(experiment_id)
+			slot = experiment_slot_ids.index experiment_id
+			slots_hash = experiment_slots
+			Experiment.new(experiment_id).nuke
+			slots_hash[slot][:start_time_as_int] = Time.now.utc.to_i
+			set_updated_slots(slots_hash)
 		end
 
 		# adds an experiment with metadata to a given list
@@ -146,15 +160,15 @@ module Lacmus
 		# and completed ones will be permanently lost!
 		def self.nuke_all_experiments
 			get_experiments(:pending).each do |experiment|
-				Lacmus::Experiment.reset_experiment(experiment[:experiment_id])
+				Lacmus::Experiment.nuke_experiment(experiment[:experiment_id])
 			end
 
 			get_experiments(:active).each do |experiment|
-				Lacmus::Experiment.reset_experiment(experiment[:experiment_id])
+				Lacmus::Experiment.nuke_experiment(experiment[:experiment_id])
 			end
 
 			get_experiments(:completed).each do |experiment|
-				Lacmus::Experiment.reset_experiment(experiment[:experiment_id])
+				Lacmus::Experiment.nuke_experiment(experiment[:experiment_id])
 			end
 
 			Lacmus.fast_storage.del list_key_by_type(:pending)
@@ -191,10 +205,18 @@ module Lacmus
 			end
 		end
 
+		def self.worker_cache_active=(value)
+			$__lcms__worker_cache_active = value
+		end
+
+		def self.worker_cache_interval=(value)
+			$__lcms__worker_cache_interval = value.to_i
+		end
+
 		# permanently deletes an axperiment
 		def self.destroy_experiment(list, experiment_id)
 			remove_experiment_from(list, experiment_id)
-			Lacmus::Experiment.reset_experiment(experiment_id)
+			Lacmus::Experiment.nuke_experiment(experiment_id)
 		end
 
 		# returns the appropriate key for the given list status
@@ -271,7 +293,7 @@ module Lacmus
 		end
 
 		def self.experiment_slots
-			if $__lcms__loaded_at_as_int.to_i > (Time.now.utc.to_i - SLOT_PRELOAD_INTERVAL)
+			if $__lcms__worker_cache_active && $__lcms__loaded_at_as_int.to_i > (Time.now.utc.to_i - $__lcms__worker_cache_interval)
 				$__lcms__active_experiments
 			else
 				slot_hash_from_redis = Lacmus.fast_storage.get slot_usage_key

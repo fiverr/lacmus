@@ -19,10 +19,6 @@ module Lacmus
 		attr_reader :control_analytics
 		attr_reader :experiment_analytics
 
-		# Class variables
-		# TODO: move to settings
-		# @@web_admin_prefs = {}
-		# @@web_prefs_last_loaded_at = nil
 		def initialize(value)
 			if value.is_a?(Hash)
 				experiment = value
@@ -71,8 +67,8 @@ module Lacmus
 			safe_name
 		end
 
-		def reset
-			self.class.reset_experiment(@id)
+		def nuke
+			self.class.nuke_experiment(@id)
 		end
 
 		def save
@@ -92,7 +88,7 @@ module Lacmus
 			end
 		end
 
-		def self.reset_experiment(experiment_id)
+		def self.nuke_experiment(experiment_id)
 			Lacmus.fast_storage.multi do
 				Lacmus.fast_storage.del kpi_key(experiment_id)
 				Lacmus.fast_storage.del kpi_key(experiment_id, true)
@@ -131,16 +127,21 @@ module Lacmus
 			(experiment_kpis[kpi].to_f / experiment_analytics[:exposures].to_f) * 100
 		end
 
+		def enough_participants_tested?(kpi)
+			#conversion rate for group 1
+			c1 = control_conversion(kpi).to_i
+			c2 = experiment_conversion(kpi).to_i
+			# average conversion rate
+			ac = ((c1+c2)/2).to_i
+			# required number of participants in test group
+			participants_needed = (16*ac*(1-ac))/((c1-c2)^2)
+
+			total_participants = experiment_analytics[:exposures].to_i + control_analytics[:exposures].to_i
+			# if there aren't enogh participants, return false
+			return (participants_needed < total_participants)
+		end
 
 		private
-
-		# def self.web_admin_prefs
-		# 	if @@web_prefs_last_loaded_at.nil? || @@web_prefs_last_loaded_at < (Time.now - 60)
-		# 		load_web_admin_prefs
-		# 	end
-
-		# 	@@web_admin_prefs
-		# end
 
 		def self.is_control_group?(experiment_id)
 			experiment_id == 0
@@ -149,14 +150,6 @@ module Lacmus
 		def list_key_by_type(list)
 			Lacmus::SlotMachine.list_key_by_type(list)
 		end
-
-		# TODO: move to settings
-		# def self.load_web_admin_prefs
-		# 	@@web_prefs_last_loaded_at = Time.now
-		# 	@@web_admin_prefs = Marshal.load(Lacmus.fast_storage.get web_admin_prefs_key)
-		# end
-
-		# ------------------------------------------------
 	
 		def self.all_from(list)
 			experiments = []
@@ -174,11 +167,6 @@ module Lacmus
 		def self.exposure_key(experiment_id, is_control = false)
 			"#{Lacmus.namespace}-#{is_control}-counter-#{experiment_id.to_s}"
 		end
-
-		# TODO: move to settings
-		# def self.web_admin_prefs_key
-		# 	"#{Lacmus::Settings::LACMUS_NAMESPACE}-web-admin-prefs"
-		# end
 
 	end
 

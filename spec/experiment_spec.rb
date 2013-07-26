@@ -9,26 +9,6 @@ describe Lacmus::Experiment, "Experiment" do
     @experiment_description = "dekaprius dela karma"
     @experiment_screenshot_url = "http://google.com"
     @cookies = {}
-    # self.class.instance_eval do
-    #   @cookies = {}
-
-    #   def self.[](index)
-    #     @cookies[index]
-    #   end
-
-    #   def self.[]=(index,value)
-    #     @cookies[index]=value
-    #   end
-
-    #   def self.cookies
-    #     @cookies
-    #   end
-
-    #   def self.clear_cookies
-    #     @cookies = {}
-    #   end
-    # end
-
   end
   
   before(:each) do
@@ -72,6 +52,11 @@ describe Lacmus::Experiment, "Experiment" do
     obj = Lacmus::Experiment.new(experiment_id)
     return obj.control_analytics[:exposures].to_i if is_control
     obj.experiment_analytics[:exposures].to_i
+  end
+
+  def get_kpis_for_experiment(experiment_id)
+    experiment = Lacmus::Experiment.new(experiment_id)
+    experiment.experiment_kpis
   end
 
   def reset_active_experiments_cache
@@ -130,24 +115,29 @@ describe Lacmus::Experiment, "Experiment" do
     expect(loaded_experiment.screenshot_url).to eq("new screenshot url")
   end
 
-  # it "should increment kpi value when marking kpi" do
-  #   # experiment_id = create_and_activate_experiment
-  #   # p experiment_id
-  #   # p Lacmus::Experiment.key(experiment_id)
-  #   # p Lacmus::Experiment.all_kpis_for_experiment(experiment_id)
-  #   # p Lacmus::Experiment.all_keys_as_hash(experiment_id)
-  #   # Lacmus::Experiment.mark_kpi!('ftb', experiment_id)
-  #   # Lacmus::Experiment.mark_kpi!('ftg', experiment_id)
-  #   # p Lacmus::Experiment.all_keys_as_hash(experiment_id)
-  #   # p Lacmus::Experiment.all_kpis_for_experiment(experiment_id)
-  # end
+  it "should increment KPIs only for a active experiments" do
+    experiment_id = create_and_activate_experiment
+    simple_experiment(experiment_id, "control", "experiment")
+    exposures = get_exposures_for_experiment(experiment_id)
+    expect(exposures).to eq(1)
+    Lacmus::Experiment.mark_kpi!('ftb', experiment_id)
+    Lacmus::Experiment.mark_kpi!('ftb', experiment_id)
+    expect(get_kpis_for_experiment(experiment_id)['ftb'].to_i).to eq(2)
+  end
 
-  # it "should not track user exposed to completed exeriment" do
-  # 	# p helper.request.cookies[:awesome]
-  # 	# Lacmus::Experiment.tuid_cookie
-  # end
-
-  # it "should not track exposed user twice" do
-  # end
+  it "should calculate conversion correctly" do
+    experiment_id = create_and_activate_experiment
+    simple_experiment(experiment_id, "control", "experiment")
+    clear_cookies
+    simple_experiment(experiment_id, "control", "experiment")
+    clear_cookies
+    simple_experiment(experiment_id, "control", "experiment")
+    clear_cookies
+    simple_experiment(experiment_id, "control", "experiment")
+    clear_cookies
+    Lacmus::Experiment.mark_kpi!('ftb', experiment_id)
+    Lacmus::Experiment.new(experiment_id).enough_participants_tested?('ftb')
+    Lacmus::Experiment.mark_kpi!('ftb', experiment_id)
+  end
 
 end
