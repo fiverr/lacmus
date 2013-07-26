@@ -78,6 +78,7 @@ module Lacmus
 						 "experiment_id: #{experiment_id}, control_version: #{control_version}\n" <<
 						 "experiment_version: #{experiment_version}\n" <<
 						 "Exception: #{e.inspect}"
+				control_version
 			end
 
 			def mark_kpi!(kpi)
@@ -201,7 +202,7 @@ module Lacmus
 					raw_experiment_array = cookies['lc_xpmnt'].split("|")[1..-1] # first element represents the group_prefix
 					raw_experiment_array.collect!{|pair| pair.split(";").collect!{|val|val.to_i}}
 				else
-					[]
+					return []
 				end
 
 				result.each do |experiment_id, exposed_at_as_int|
