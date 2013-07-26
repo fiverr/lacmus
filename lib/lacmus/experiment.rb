@@ -107,11 +107,9 @@ module Lacmus
 			end
 		end
 
-		def self.track_experiment_exposure(experiment_id)
-			if is_control_group?(experiment_id)
-				Lacmus::SlotMachine.experiment_slot_ids_without_control_group.each do |slot|
-					Lacmus.fast_storage.incr exposure_key(experiment_id, true)
-				end
+		def self.track_experiment_exposure(experiment_id, is_control = false)
+			if is_control
+				Lacmus.fast_storage.incr exposure_key(experiment_id, true)
 			else
 				Lacmus.fast_storage.incr exposure_key(experiment_id)
 			end
@@ -163,11 +161,11 @@ module Lacmus
 		end
 
 		def self.kpi_key(experiment_id, is_control = false)
-			"#{Lacmus::Settings::LACMUS_NAMESPACE}-#{is_control}-kpis-#{experiment_id.to_s}"
+			"#{Lacmus.namespace}-#{is_control}-kpis-#{experiment_id.to_s}"
 		end
 
 		def self.exposure_key(experiment_id, is_control = false)
-			"#{Lacmus::Settings::LACMUS_NAMESPACE}-#{is_control}-counter-#{experiment_id.to_s}"
+			"#{Lacmus.namespace}-#{is_control}-counter-#{experiment_id.to_s}"
 		end
 
 	end

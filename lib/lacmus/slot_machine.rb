@@ -266,8 +266,6 @@ module Lacmus
 		end
 
 		def self.get_experiment_id_from_slot(slot)
-			# TODO: add caching for the slots - to be loaded from time to time
-			# into the application memory $ 
 			experiment_slot_ids[slot.to_i]
 		end
 
@@ -308,6 +306,12 @@ module Lacmus
 				end
 			end
 			$__lcms__active_experiments
+		end
+
+		def self.last_experiment_reset(experiment_id)
+			cached_exp = $__lcms__active_experiments[experiment_id.to_s]
+			return if cached_exp.nil?
+			return cached_exp[:start_time_as_int]
 		end
 
 		def self.experiment_slot_ids
