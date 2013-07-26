@@ -74,6 +74,11 @@ describe Lacmus::Experiment, "Experiment" do
     obj.experiment_analytics[:exposures].to_i
   end
 
+  def get_kpis_for_experiment(experiment_id)
+    experiment = Lacmus::Experiment.new(experiment_id)
+    experiment.experiment_kpis
+  end
+
   def reset_active_experiments_cache
 		$__lcms__loaded_at_as_int = 0
 	end
@@ -128,6 +133,31 @@ describe Lacmus::Experiment, "Experiment" do
     expect(loaded_experiment.name).to eq("new name")
     expect(loaded_experiment.description).to eq("new description")
     expect(loaded_experiment.screenshot_url).to eq("new screenshot url")
+  end
+
+  it "should increment KPIs only for a active experiments" do
+    experiment_id = create_and_activate_experiment
+    simple_experiment(experiment_id, "control", "experiment")
+    exposures = get_exposures_for_experiment(experiment_id)
+    expect(exposures).to eq(1)
+    Lacmus::Experiment.mark_kpi!('ftb', experiment_id)
+    Lacmus::Experiment.mark_kpi!('ftb', experiment_id)
+    expect(get_kpis_for_experiment(experiment_id)['ftb'].to_i).to eq(2)
+  end
+
+  it "should calculate conversion correctly" do
+    experiment_id = create_and_activate_experiment
+    simple_experiment(experiment_id, "control", "experiment")
+    clear_cookies
+    simple_experiment(experiment_id, "control", "experiment")
+    clear_cookies
+    simple_experiment(experiment_id, "control", "experiment")
+    clear_cookies
+    simple_experiment(experiment_id, "control", "experiment")
+    clear_cookies
+    Lacmus::Experiment.mark_kpi!('ftb', experiment_id)
+    Lacmus::Experiment.new(experiment_id).enough_participants_tested?('ftb')
+    Lacmus::Experiment.mark_kpi!('ftb', experiment_id)
   end
 
   # it "should increment kpi value when marking kpi" do
