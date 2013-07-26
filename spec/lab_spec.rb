@@ -137,20 +137,20 @@ describe Lacmus::Lab, "Lab" do
   it "control group user should only increment views and kpis for exeperiments he was exposed to" do
     Lacmus::SlotMachine.worker_cache_active = false
     Lacmus::SlotMachine.resize_slot_array(3)
-    # reset_active_experiments_cache
 
     experiment_id1 = create_and_activate_experiment
     experiment_id2 = create_and_activate_experiment
-    p "initial uid: #{current_temp_user_id}"
-
-    2.times {p current_temp_user_id; clear_cookies}
-    p "final uid: #{current_temp_user_id}"
-    p "slot count: #{Lacmus::SlotMachine.experiment_slots.count}"
+		2.times { current_temp_user_id; clear_cookies}
+		current_temp_user_id
     expect(user_belongs_to_control_group?).to be_true
 
     simple_experiment(experiment_id1, "control", "experiment")
     expect(Lacmus::Experiment.new(experiment_id1).control_analytics[:exposures].to_i).to eq(1)
     expect(Lacmus::Experiment.new(experiment_id2).control_analytics[:exposures].to_i).to eq(0)
+
+    simple_experiment(experiment_id2, "control", "experiment")
+    expect(Lacmus::Experiment.new(experiment_id1).control_analytics[:exposures].to_i).to eq(1)
+    expect(Lacmus::Experiment.new(experiment_id2).control_analytics[:exposures].to_i).to eq(1)
   end
 
 end

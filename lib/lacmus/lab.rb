@@ -121,9 +121,8 @@ module Lacmus
 
 			def should_mark_experiment_view?(experiment_id, is_control = false)
 				return true if exposed_experiments.empty?
-
 				if is_control
-					return true if exposed_experiments[experiment_id.to_s].nil?
+					return true if !exposed_experiments_list.include?(experiment_id.to_i)
 					return server_reset_requested?(experiment_id)
 				else
 					return true if experiment_for_user.to_i != current_experiment
@@ -167,8 +166,11 @@ module Lacmus
 			def current_experiment
 				return unless experiment_cookie
 				exposed_experiments.keys.last
-				# return experiment_cookie.to_i if experiment_cookie.respond_to?(:to_i) 
-				# return experiment_cookie[:value].to_i if experiment_cookie.respond_to?(:keys) 
+			end
+
+			def experiment_cookie_value
+				cookie_value = experiment_cookie
+				cookie_value.is_a?(Hash) ? cookie_value[:value] : cookie_value
 			end
 
 			# gets the user's slot in the experiment slot list,
@@ -198,17 +200,23 @@ module Lacmus
 			# == Example for cookie: [c|234;29837462924]
 			def exposed_experiments
 				experiments_array = []
-				if cookies['lc_xpmnt']
-					raw_experiment_array = cookies['lc_xpmnt'].split("|")[1..-1] # first element represents the group_prefix
+				if experiment_cookie_value
+					raw_experiment_array = experiment_cookie_value.split("|")[1..-1] # first element represents the group_prefix
 					raw_experiment_array.collect!{|pair| pair.split(";").collect!{|val|val.to_i}}
 				else
 					return []
 				end
 
-				result.each do |experiment_id, exposed_at_as_int|
+				raw_experiment_array.each do |experiment_id, exposed_at_as_int|
 					experiments_array << {experiment_id.to_s => Time.at(exposed_at_as_int.to_i)}
 				end
 				experiments_array
+			end
+
+			# Returns an array containings all experiment ids the user
+			# was exposed to.
+			def exposed_experiments_list
+				exposed_experiments.collect{|i| i.keys}.flatten.collect{|i| i.to_i}
 			end
 
 			def add_exposure_to_cookie(experiment_id, is_control = false)
@@ -224,12 +232,6 @@ module Lacmus
 			def build_tuid_cookie(temp_user_id)
 				cookies['lc_tuid'] = {:value => temp_user_id, :expires => MAX_COOKIE_TIME}
 			end
-
-			# set the experiment that was exposed to the user, and when it was exposed
-			# def update_experiment_cookie(experiment_id)
-			# 	Lacmus::ExperimentHistory.log_experiment(experiment_for_user, Time.now.utc)
-			# 	add_exposure_to_cookie(experiment_id)
-			# end
 
 		end # of InstanceMethods
 
