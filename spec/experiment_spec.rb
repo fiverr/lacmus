@@ -9,26 +9,6 @@ describe Lacmus::Experiment, "Experiment" do
     @experiment_description = "dekaprius dela karma"
     @experiment_screenshot_url = "http://google.com"
     @cookies = {}
-    # self.class.instance_eval do
-    #   @cookies = {}
-
-    #   def self.[](index)
-    #     @cookies[index]
-    #   end
-
-    #   def self.[]=(index,value)
-    #     @cookies[index]=value
-    #   end
-
-    #   def self.cookies
-    #     @cookies
-    #   end
-
-    #   def self.clear_cookies
-    #     @cookies = {}
-    #   end
-    # end
-
   end
   
   before(:each) do
@@ -159,25 +139,5 @@ describe Lacmus::Experiment, "Experiment" do
     Lacmus::Experiment.new(experiment_id).enough_participants_tested?('ftb')
     Lacmus::Experiment.mark_kpi!('ftb', experiment_id)
   end
-
-  # it "should increment kpi value when marking kpi" do
-  #   # experiment_id = create_and_activate_experiment
-  #   # p experiment_id
-  #   # p Lacmus::Experiment.key(experiment_id)
-  #   # p Lacmus::Experiment.all_kpis_for_experiment(experiment_id)
-  #   # p Lacmus::Experiment.all_keys_as_hash(experiment_id)
-  #   # Lacmus::Experiment.mark_kpi!('ftb', experiment_id)
-  #   # Lacmus::Experiment.mark_kpi!('ftg', experiment_id)
-  #   # p Lacmus::Experiment.all_keys_as_hash(experiment_id)
-  #   # p Lacmus::Experiment.all_kpis_for_experiment(experiment_id)
-  # end
-
-  # it "should not track user exposed to completed exeriment" do
-  # 	# p helper.request.cookies[:awesome]
-  # 	# Lacmus::Experiment.tuid_cookie
-  # end
-
-  # it "should not track exposed user twice" do
-  # end
 
 end
