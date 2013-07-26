@@ -189,5 +189,3 @@ describe Lacmus::SlotMachine, "Management Features" do
 	end
 
 end
-
-
