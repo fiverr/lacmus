@@ -155,6 +155,10 @@ module Lacmus
 			Lacmus::SlotMachine.restart_experiment(id)
 		end
 
+		def self.active?(experiment_id)
+			Lacmus::SlotMachine.experiment_slot_ids.include?(experiment_id.to_i)
+		end
+
 		private
 
 		def self.is_control_group?(experiment_id)

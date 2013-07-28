@@ -333,7 +333,7 @@ module Lacmus
 		end
 
 		def self.experiment_slot_ids
-			experiment_slots.collect{|slot| slot[:experiment_id]}
+			experiment_slots.collect{|slot| slot[:experiment_id].to_i}
 		end
 
 		def self.experiment_slot_ids_without_control_group

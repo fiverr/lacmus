@@ -122,7 +122,9 @@ module Lacmus
 			end
 
 			def should_mark_experiment_view?(experiment_id, is_control = false)
+				return false if !Lacmus::Experiment.active?(experiment_id)
 				return true if exposed_experiments.empty?
+
 				if is_control
 					return true if !exposed_experiments_list.include?(experiment_id.to_i)
 					return server_reset_requested?(experiment_id)
