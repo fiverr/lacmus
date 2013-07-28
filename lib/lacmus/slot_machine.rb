@@ -7,7 +7,7 @@ module Lacmus
 	module SlotMachine
 
 		# Constants
-			CONTROL_SLOT_HASH = {:experiment_id => 0, :start_time_as_int => 0}
+		CONTROL_SLOT_HASH = {:experiment_id => 0, :start_time_as_int => 0}
 		EMPTY_SLOT_HASH   = {:experiment_id => -1, :start_time_as_int => 0}
 		DEFAULT_SLOT_HASH = [CONTROL_SLOT_HASH, EMPTY_SLOT_HASH]
 
