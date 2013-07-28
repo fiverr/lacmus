@@ -153,6 +153,28 @@ describe Lacmus::Lab, "Lab" do
     expect(Lacmus::Experiment.new(experiment_id2).control_analytics[:exposures].to_i).to eq(1)
   end
 
+  it "should increment views and kpis for exeperiments the user was exposed to (control group, block)" do
+    Lacmus::SlotMachine.worker_cache_active = false
+    Lacmus::SlotMachine.resize_slot_array(3)
+
+    experiment_id1 = create_and_activate_experiment
+    experiment_id2 = create_and_activate_experiment
+		2.times { current_temp_user_id; clear_cookies}
+		current_temp_user_id
+    expect(user_belongs_to_control_group?).to be_true
+
+    render_control_version(experiment_id1) do
+     	"control"
+   	end
+
+    expect(Lacmus::Experiment.new(experiment_id1).control_analytics[:exposures].to_i).to eq(1)
+    expect(Lacmus::Experiment.new(experiment_id2).control_analytics[:exposures].to_i).to eq(0)
+
+    simple_experiment(experiment_id2, "control", "experiment")
+    expect(Lacmus::Experiment.new(experiment_id1).control_analytics[:exposures].to_i).to eq(1)
+    expect(Lacmus::Experiment.new(experiment_id2).control_analytics[:exposures].to_i).to eq(1)
+  end
+
   it "should increment views and kpis for exeperiments the user was exposed to (non-control group, simple)" do
   	Lacmus::SlotMachine.worker_cache_active = false
     Lacmus::SlotMachine.resize_slot_array(3)
@@ -170,6 +192,36 @@ describe Lacmus::Lab, "Lab" do
     expect(Lacmus::Experiment.new(experiment_id2).control_analytics[:exposures].to_i).to eq(0)
 
     simple_experiment(experiment_id2, "control", "experiment")
+    expect(Lacmus::Experiment.new(experiment_id1).experiment_analytics[:exposures].to_i).to eq(1)
+    expect(Lacmus::Experiment.new(experiment_id2).experiment_analytics[:exposures].to_i).to eq(0)
+
+    expect(Lacmus::Experiment.new(experiment_id1).control_analytics[:exposures].to_i).to eq(0)
+    expect(Lacmus::Experiment.new(experiment_id2).control_analytics[:exposures].to_i).to eq(0)
+  end
+
+  it "should increment views and kpis for exeperiments the user was exposed to (non-control group, block)" do
+  	Lacmus::SlotMachine.worker_cache_active = false
+    Lacmus::SlotMachine.resize_slot_array(3)
+
+    experiment_id1 = create_and_activate_experiment
+    experiment_id2 = create_and_activate_experiment
+    expect(user_belongs_to_control_group?).to be_false
+    expect(user_belongs_to_experiment?(experiment_id1)).to be_true
+
+    render_experiment_version(experiment_id1) do
+     	"experiment"
+   	end
+
+    expect(Lacmus::Experiment.new(experiment_id1).experiment_analytics[:exposures].to_i).to eq(1)
+    expect(Lacmus::Experiment.new(experiment_id2).experiment_analytics[:exposures].to_i).to eq(0)
+
+    expect(Lacmus::Experiment.new(experiment_id1).control_analytics[:exposures].to_i).to eq(0)
+    expect(Lacmus::Experiment.new(experiment_id2).control_analytics[:exposures].to_i).to eq(0)
+
+    render_experiment_version(experiment_id2) do
+     	"experiment"
+   	end
+
     expect(Lacmus::Experiment.new(experiment_id1).experiment_analytics[:exposures].to_i).to eq(1)
     expect(Lacmus::Experiment.new(experiment_id2).experiment_analytics[:exposures].to_i).to eq(0)
 
