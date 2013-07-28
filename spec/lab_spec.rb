@@ -136,7 +136,7 @@ describe Lacmus::Lab, "Lab" do
 
   it "control group user should only increment views and kpis for exeperiments he was exposed to" do
     Lacmus::SlotMachine.worker_cache_active = false
-    Lacmus::SlotMachine.resize_slot_array(3)
+    Lacmus::SlotMachine.resize_and_reset_slot_array(3)
 
     experiment_id1 = create_and_activate_experiment
     experiment_id2 = create_and_activate_experiment

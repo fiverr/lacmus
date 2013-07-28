@@ -76,7 +76,9 @@ module Lacmus
 			metadata = {
 				:name => @name, 
 				:description => @description,
-				:screenshot_url => @screenshot_url
+				:screenshot_url => @screenshot_url,
+				:start_time_as_int => @start_time.is_a?(Time) ? @start_time.utc.to_i : @start_time,
+				:end_time_as_int => @end_time.is_a?(Time) ? @end_time.utc.to_i : @end_time
 			}
 
 			original_experiment.merge!(metadata)
@@ -139,6 +141,10 @@ module Lacmus
 			total_participants = experiment_analytics[:exposures].to_i + control_analytics[:exposures].to_i
 			# if there aren't enogh participants, return false
 			return (participants_needed < total_participants)
+		end
+
+		def restart!
+			Lacmus::SlotMachine.restart_experiment(id)
 		end
 
 		private

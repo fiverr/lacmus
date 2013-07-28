@@ -65,9 +65,6 @@ module Lacmus
 			true
 		end
 
-		# def self.reset_experiment(experiment_id)
-		# 	# experiment = self.get_experiment_from(:active, experiment_id)
-		# end
 
 		# returns an experimend from one of the lists
 		#
@@ -107,8 +104,11 @@ module Lacmus
 		def self.restart_experiment(experiment_id)
 			slot = experiment_slot_ids.index experiment_id
 			slots_hash = experiment_slots
-			Experiment.new(experiment_id).nuke
+			ex = Experiment.new(experiment_id)
+			ex.nuke
 			slots_hash[slot][:start_time_as_int] = Time.now.utc.to_i
+			ex.start_time = Time.now
+			ex.save
 			set_updated_slots(slots_hash)
 		end
 
@@ -178,7 +178,7 @@ module Lacmus
 			reset_slots_to_defaults
 		end
 
-		def self.resize_slot_array(new_size)
+		def self.resize_and_reset_slot_array(new_size)
 			slot_array = experiment_slots
 			new_size = new_size.to_i
 
@@ -193,7 +193,10 @@ module Lacmus
 				slot_array += Array.new(slots_to_add){EMPTY_SLOT_HASH}
 			end
 
+			get_experiments(:active).each {|e| Lacmus::Experiment.new(e).restart!}
+			reset_worker_cache
 			Lacmus.fast_storage.set slot_usage_key, Marshal.dump(slot_array)
+
 			true
 		end
 
@@ -201,8 +204,12 @@ module Lacmus
 		# [1,23,4,4,4,-1, 23, 43]
 		def self.find_last_used_slot(slot_array)
 			slot_array.reverse.each_with_index do |i, index|
-				return (slot_array.count - index) if i != -1
+				return (slot_array.count - index) if i[:experiment_id] != -1
 			end
+		end
+
+		def self.any_active_experiments?
+			(get_experiments(:active).count > 0)
 		end
 
 		def self.worker_cache_active=(value)
@@ -211,6 +218,10 @@ module Lacmus
 
 		def self.worker_cache_interval=(value)
 			$__lcms__worker_cache_interval = value.to_i
+		end
+
+		def self.reset_worker_cache
+			$__lcms__loaded_at_as_int = 0
 		end
 
 		# permanently deletes an axperiment
