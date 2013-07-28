@@ -82,7 +82,7 @@ module Lacmus
 			end
 
 			def mark_kpi!(kpi)
-				Lacmus::Experiment.mark_kpi!(kpi, exposed_experiments_list)
+				Lacmus::Experiment.mark_kpi!(kpi, exposed_experiments_list, user_belongs_to_control_group?)
 			rescue Exception => e
 				lacmus_logger "#{__method__}: Failed to mark kpi: #{kpi}, e: #{e.inspect}"
 			end
