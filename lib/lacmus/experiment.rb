@@ -5,15 +5,15 @@ module Lacmus
 	class Experiment
 
 		# Accessors
-		attr_accessor :screenshot_url
-		attr_accessor :errors
-
 		attr_accessor :id
 		attr_accessor :name
 		attr_accessor :description
 		attr_accessor :start_time
 		attr_accessor	:end_time
 		attr_accessor	:status
+		attr_accessor :screenshot_url
+		attr_accessor :errors
+
 		attr_reader :control_kpis
 		attr_reader :experiment_kpis
 		attr_reader :control_analytics
@@ -99,14 +99,22 @@ module Lacmus
 			end			
 		end
 
-		def self.mark_kpi!(kpi, experiment_id)
-			if is_control_group?(experiment_id)
-				Lacmus::SlotMachine.experiment_slot_ids_without_control_group.each do |slot|
-					Lacmus.fast_storage.zincrby kpi_key(slot, true), 1, kpi.to_s
+		def self.mark_kpi!(kpi, experiment_ids, is_control = false)
+			experiment_ids.each do |experiment_id|
+				if is_control
+					mark_control_group_kpi(kpi, experiment_id)
+				else
+					mark_experiment_group_kpi(kpi, experiment_id)
 				end
-			else
-				Lacmus.fast_storage.zincrby kpi_key(experiment_id), 1, kpi.to_s
 			end
+		end
+
+		def self.mark_control_group_kpi(kpi, experiment_id)
+			Lacmus.fast_storage.zincrby kpi_key(experiment_id, true), 1, kpi.to_s
+		end
+
+		def self.mark_experiment_group_kpi(kpi, experiment_id)
+			Lacmus.fast_storage.zincrby kpi_key(experiment_id, false), 1, kpi.to_s
 		end
 
 		def self.track_experiment_exposure(experiment_id, is_control = false)
@@ -174,7 +182,7 @@ module Lacmus
 			"#{Lacmus.namespace}-#{is_control}-counter-#{experiment_id.to_s}"
 		end
 
-	end
+	end # of Experiment
 
 	class ExperimentHistoryItem < Experiment
 		attr_accessor :user_tmp_id
@@ -186,5 +194,5 @@ module Lacmus
 			super(experiment_id)
 		end
 
-	end
-end
+	end # of ExperimentHistoryItem
+end # of Lacmus

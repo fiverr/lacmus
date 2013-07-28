@@ -7,7 +7,7 @@ module Lacmus
 	module SlotMachine
 
 		# Constants
-			CONTROL_SLOT_HASH = {:experiment_id => 0, :start_time_as_int => 0}
+		CONTROL_SLOT_HASH = {:experiment_id => 0, :start_time_as_int => 0}
 		EMPTY_SLOT_HASH   = {:experiment_id => -1, :start_time_as_int => 0}
 		DEFAULT_SLOT_HASH = [CONTROL_SLOT_HASH, EMPTY_SLOT_HASH]
 
@@ -304,19 +304,23 @@ module Lacmus
 		end
 
 		def self.experiment_slots
-			if $__lcms__worker_cache_active && $__lcms__loaded_at_as_int.to_i > (Time.now.utc.to_i - $__lcms__worker_cache_interval)
-				$__lcms__active_experiments
+			if worker_cache_valid?
+				return $__lcms__active_experiments
+			end
+
+			slot_hash_from_redis = Lacmus.fast_storage.get slot_usage_key
+			if slot_hash_from_redis
+				$__lcms__active_experiments = Marshal.load(slot_hash_from_redis)
+				$__lcms__loaded_at_as_int = Time.now.utc.to_i
 			else
-				slot_hash_from_redis = Lacmus.fast_storage.get slot_usage_key
-				slot_hash_from_redis = Marshal.load(slot_hash_from_redis) if slot_hash_from_redis
-				if slot_hash_from_redis
-					$__lcms__active_experiments = slot_hash_from_redis
-					$__lcms__loaded_at_as_int = Time.now.utc.to_i
-				else
-					init_slots
-				end
+				init_slots
 			end
 			$__lcms__active_experiments
+		end
+
+		def self.worker_cache_valid?
+			$__lcms__worker_cache_active &&
+				$__lcms__loaded_at_as_int.to_i > (Time.now.utc.to_i - $__lcms__worker_cache_interval)
 		end
 
 		def self.last_experiment_reset(experiment_id)

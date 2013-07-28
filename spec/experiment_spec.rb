@@ -122,8 +122,8 @@ describe Lacmus::Experiment, "Experiment" do
     simple_experiment(experiment_id, "control", "experiment")
     exposures = get_exposures_for_experiment(experiment_id)
     expect(exposures).to eq(1)
-    Lacmus::Experiment.mark_kpi!('ftb', experiment_id)
-    Lacmus::Experiment.mark_kpi!('ftb', experiment_id)
+    mark_kpi!('ftb')
+    mark_kpi!('ftb')
     expect(get_kpis_for_experiment(experiment_id)['ftb'].to_i).to eq(2)
   end
 
@@ -135,7 +135,7 @@ describe Lacmus::Experiment, "Experiment" do
     end
 
     2.times do
-      Lacmus::Experiment.mark_kpi!('ftb', experiment_id)
+      mark_kpi!('ftb')
     end
 
     conversion = Lacmus::Experiment.new(experiment_id).experiment_conversion('ftb')
@@ -152,9 +152,9 @@ describe Lacmus::Experiment, "Experiment" do
     simulate_unique_visitor_exposure(experiment_id1)
     simulate_unique_visitor_exposure(experiment_id1)
     simulate_unique_visitor_exposure(experiment_id1)
-    Lacmus::Experiment.mark_kpi!('ftb', experiment_id1)
-    Lacmus::Experiment.mark_kpi!('ftb', experiment_id1)
-    Lacmus::Experiment.mark_kpi!('ftb', experiment_id1)
+    mark_kpi!('ftb')
+    mark_kpi!('ftb')
+    mark_kpi!('ftb')
 
     expect(get_exposures_for_experiment(experiment_id1).to_i).to eq(3)
     expect(get_exposures_for_experiment(experiment_id2).to_i).to eq(0)

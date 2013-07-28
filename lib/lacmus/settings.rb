@@ -2,10 +2,10 @@ module Lacmus
 	module Settings
 
 		# Global Variables
-		# TODO: Ugly and shitty code, refactor to make it something decent
-		$has_rails = defined?(Rails.root)
-		if $has_rails
-			ROOT = $has_rails && Rails.root ? Rails.root : Dir.pwd
+		# TODO: Make this code decent and readable.
+		$__lacmus_has_rails = defined?(Rails.root)
+		if $__lacmus_has_rails
+			ROOT = $__lacmus_has_rails && Rails.root ? Rails.root : Dir.pwd
 			ENV = Rails.env	
 		else
 			ROOT = ENV == "test" ? "#{Dir.pwd}/spec" : "#{Dir.pwd}/spec"
@@ -15,7 +15,6 @@ module Lacmus
 		# Constants
 		LACMUS_NAMESPACE = "lcms-#{ENV}"
 
-		puts "------> RAILS ROOT IS: #{ROOT} | ENV = #{ENV}"
-
+		puts "------> Lacmus initiated, ROOT: #{ROOT},  ENV = #{ENV}"
 	end
 end
