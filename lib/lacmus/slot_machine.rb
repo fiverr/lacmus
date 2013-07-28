@@ -100,9 +100,12 @@ module Lacmus
 			get_experiment_from(:active, 0)
 		end
 
-		# restart an experiment
+		# restart an active experiment
+		# return if the experiment isn't active.
 		def self.restart_experiment(experiment_id)
 			slot = experiment_slot_ids.index experiment_id
+			return if slot.nil?
+
 			slots_hash = experiment_slots
 			ex = Experiment.new(experiment_id)
 			ex.nuke
