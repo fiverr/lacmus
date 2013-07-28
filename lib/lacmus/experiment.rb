@@ -97,14 +97,22 @@ module Lacmus
 			end			
 		end
 
-		def self.mark_kpi!(kpi, experiment_id)
-			if is_control_group?(experiment_id)
-				Lacmus::SlotMachine.experiment_slot_ids_without_control_group.each do |slot|
-					Lacmus.fast_storage.zincrby kpi_key(slot, true), 1, kpi.to_s
+		def self.mark_kpi!(kpi, experiment_ids, is_control = false)
+			experiment_ids.each do |experiment_id|
+				if is_control
+					mark_control_group_kpi(kpi, experiment_id)
+				else
+					mark_experiment_group_kpi(kpi, experiment_id)
 				end
-			else
-				Lacmus.fast_storage.zincrby kpi_key(experiment_id), 1, kpi.to_s
 			end
+		end
+
+		def self.mark_control_group_kpi(kpi, experiment_id)
+			Lacmus.fast_storage.zincrby kpi_key(experiment_id, true), 1, kpi.to_s
+		end
+
+		def self.mark_experiment_group_kpi(kpi, experiment_id)
+			Lacmus.fast_storage.zincrby kpi_key(experiment_id, false), 1, kpi.to_s
 		end
 
 		def self.track_experiment_exposure(experiment_id, is_control = false)
