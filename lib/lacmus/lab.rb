@@ -94,6 +94,8 @@ module Lacmus
 			# returns 0 for empty experiments and control group
 			# returns experiment id for users who are selected for an active experiment
 			def lacmus_cache_key
+				return '0' unless @uid_hash || temp_user_id_cookie
+
 				experiment_id = Lacmus::SlotMachine.get_experiment_id_from_slot(slot_for_user).to_i
 				return '0' if [0,-1].include?(experiment_id)
 				return experiment_id.to_s
