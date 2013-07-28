@@ -42,6 +42,11 @@ module Lacmus
 			move_experiment(experiment_id, :pending, :active)
 		end
 
+		# Reactivates a completed exeprtiment
+		def self.reactivate_experiment(experiment_id)
+			move_experiment(experiment_id, :completed, :active)
+		end
+
 		# move experiment from one list to another
 		#
 		# valid list types - :pending, :active, :completed
@@ -52,6 +57,10 @@ module Lacmus
 
 			if from_list == :pending && to_list == :active
 				experiment.merge!({:start_time_as_int => Time.now.utc.to_i})
+			end
+
+			if from_list == :completed && to_list == :active
+				experiment.merge!({:end_time_as_int => nil})
 			end
 
 			if from_list == :active && to_list == :completed
