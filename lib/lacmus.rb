@@ -5,7 +5,6 @@ require 'lacmus/utils'
 require 'lacmus/lab'
 require 'lacmus/experiment'
 require 'lacmus/slot_machine'
-require 'lacmus/helper'
 require 'lacmus/experiment_history'
 
 module Lacmus

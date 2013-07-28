@@ -10,7 +10,7 @@ module Lacmus
       	extend ClassMethods
       	include InstanceMethods
 
-      	if $has_rails
+      	if $__lacmus_has_rails
       		base.helper_method :render_control_version
       		base.helper_method :render_experiment_version
       		base.helper_method :mark_kpi!
@@ -231,6 +231,9 @@ module Lacmus
 			
 			def build_tuid_cookie(temp_user_id)
 				cookies['lc_tuid'] = {:value => temp_user_id, :expires => MAX_COOKIE_TIME}
+			end
+
+			def lacmus_logger(log)
 			end
 
 		end # of InstanceMethods
