@@ -101,6 +101,7 @@ module Lacmus
 
 		def self.mark_kpi!(kpi, experiment_ids, is_control = false)
 			experiment_ids.each do |experiment_id|
+				next unless active?(experiment_id)
 				if is_control
 					mark_control_group_kpi(kpi, experiment_id)
 				else

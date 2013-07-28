@@ -163,5 +163,13 @@ describe Lacmus::Experiment, "Experiment" do
     expect(get_kpis_for_experiment(experiment_id2)['ftb'].to_i).to eq(0)
   end
 
+  it "should only mark KPI if the experiment is active" do
+  	experiment_id1 = create_and_activate_experiment
+  	simulate_unique_visitor_exposure(experiment_id1)
+  	Lacmus::SlotMachine.deactivate_experiment(experiment_id1)
+
+  	mark_kpi!('ftb')
+  	expect(get_kpis_for_experiment(experiment_id1)['ftb'].to_i).to eq(0)
+  end
 
 end
