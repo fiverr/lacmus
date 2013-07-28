@@ -71,7 +71,9 @@ module Lacmus
 					return control_version
 				end
 
-				mark_experiment_view(experiment_id)
+				if should_mark_experiment_view?(experiment_id)
+					mark_experiment_view(experiment_id)
+				end
 				return experiment_version
 			rescue Exception => e
 				lacmus_logger "#{__method__}: Failed to render simple experiment\n" <<
@@ -129,7 +131,7 @@ module Lacmus
 					return true if !exposed_experiments_list.include?(experiment_id.to_i)
 					return server_reset_requested?(experiment_id)
 				else
-					return true if experiment_for_user.to_i != current_experiment
+					return true if experiment_for_user.to_i != current_experiment_id
 					return true if user_belongs_to_experiment? && server_reset_requested?(experiment_id)
 					return false
 				end
@@ -167,9 +169,9 @@ module Lacmus
 				@uid_hash[:value]
 			end
 
-			def current_experiment
+			def current_experiment_id
 				return unless experiment_cookie
-				exposed_experiments.keys.last
+				exposed_experiments.last.keys.last.to_i
 			end
 
 			def experiment_cookie_value
