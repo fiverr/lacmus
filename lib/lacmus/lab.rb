@@ -39,7 +39,7 @@ module Lacmus
 				@rendered_control_group = true
 				yield(block)
 			rescue Exception => e
-				puts "#{__method__}: Failed to render control version\n" <<
+				lacmus_logger "#{__method__}: Failed to render control version\n" <<
 						 "experiment_id: #{experiment_id}, Exception: #{e.inspect}"
 			end
 
@@ -55,7 +55,7 @@ module Lacmus
 
 				yield(block)
 			rescue Exception => e
-				puts "#{__method__}: Failed to render experiment version\n" <<
+				lacmus_logger "#{__method__}: Failed to render experiment version\n" <<
 						 "experiment_id: #{experiment_id}, Exception: #{e.inspect}"
 			end
 
@@ -74,7 +74,7 @@ module Lacmus
 				mark_experiment_view(experiment_id)
 				return experiment_version
 			rescue Exception => e
-				puts "#{__method__}: Failed to render simple experiment\n" <<
+				lacmus_logger "#{__method__}: Failed to render simple experiment\n" <<
 						 "experiment_id: #{experiment_id}, control_version: #{control_version}\n" <<
 						 "experiment_version: #{experiment_version}\n" <<
 						 "Exception: #{e.inspect}"
@@ -84,7 +84,7 @@ module Lacmus
 			def mark_kpi!(kpi)
 				Lacmus::Experiment.mark_kpi!(kpi, exposed_experiments_list)
 			rescue Exception => e
-				puts "#{__method__}: Failed to mark kpi: #{kpi}, e: #{e.inspect}"
+				lacmus_logger "#{__method__}: Failed to mark kpi: #{kpi}, e: #{e.inspect}"
 			end
 
 			# this method generates a cache key to include in caches of the experiment host pages
@@ -98,7 +98,7 @@ module Lacmus
 				return '0' if [0,-1].include?(experiment_id)
 				return experiment_id.to_s
 			rescue Exception => e
-				puts "#{__method__}: Failed to get lacmus_cache_key, e: #{e.inspect}"
+				lacmus_logger "#{__method__}: Failed to get lacmus_cache_key, e: #{e.inspect}"
 			end
 
 			private
@@ -234,6 +234,11 @@ module Lacmus
 			end
 
 			def lacmus_logger(log)
+				if $__lacmus_has_rails
+					Rails.logger.error log
+				else
+					puts log
+				end
 			end
 
 		end # of InstanceMethods
