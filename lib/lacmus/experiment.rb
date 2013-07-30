@@ -101,7 +101,6 @@ module Lacmus
 
 		def self.mark_kpi!(kpi, experiment_ids, is_control = false)
 			experiment_ids.each do |experiment_id|
-				next unless active?(experiment_id)
 				if is_control
 					mark_control_group_kpi(kpi, experiment_id)
 				else
@@ -116,6 +115,24 @@ module Lacmus
 
 		def self.mark_experiment_group_kpi(kpi, experiment_id)
 			Lacmus.fast_storage.zincrby kpi_key(experiment_id, false), 1, kpi.to_s
+		end
+
+		def self.set_experiment_kpis(experiment_id, kpis = {})
+			return if kpis.empty?
+			kpis.keys.each do |kpi_name|
+				Lacmus.fast_storage.zincrby kpi_key(experiment_id, false), kpis[kpi_name], kpi_name
+			end
+		end
+
+		def self.set_control_kpis(experiment_id, kpis = {})
+			return if kpis.empty?
+			kpis.keys.each do |kpi_name|
+				Lacmus.fast_storage.zincrby kpi_key(experiment_id, true), kpis[kpi_name], kpi_name
+			end
+		end
+
+		def self.set_counter(experiment_id, counter_name, control_group, value)
+
 		end
 
 		def self.track_experiment_exposure(experiment_id, is_control = false)
@@ -153,11 +170,17 @@ module Lacmus
 			participants_needed = (16*ac*(1-ac))/((c1-c2)^2).to_i
 			
 			participants_needed - total_participants
+		rescue
+			return -1
 		end
 
 		def experiment_progress(kpi)
 			remining = remaining_participants_needed_for(kpi).to_i
-			(total_participants.to_f / (total_participants + remining)) * 100
+			return 10 if remining < 0
+			(total_participants.to_f / (total_participants.to_f + remining.to_f)) * 100
+		end
+
+		def results_dependable?(kpi)
 		end
 
 		def total_participants
