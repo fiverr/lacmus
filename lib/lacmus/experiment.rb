@@ -168,7 +168,12 @@ module Lacmus
 			total_required = required_participants_needed_for(kpi).to_i
 			return 100 if experiment_analytics[:exposures].to_i > total_required
 			
-			(experiment_analytics[:exposures].to_f / total_required).to_i
+			(experiment_analytics[:exposures].to_f / total_required) * 100
+		end
+
+		def performance_perc(kpi)
+			return if control_conversion(kpi) == 0
+			((experiment_conversion(kpi) / control_conversion(kpi)) - 1) * 100
 		end
 
 		def remaining_participants_needed(kpi)
