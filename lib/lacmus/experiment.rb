@@ -155,36 +155,28 @@ module Lacmus
 			(experiment_kpis[kpi].to_f / experiment_analytics[:exposures].to_f) * 100
 		end
 
-		def enough_participants_tested?(kpi)
-			# if there aren't enogh participants, return false
-			remaining_participants_needed_for(kpi) > 0
-		end
-
-		def remaining_participants_needed_for(kpi)
-			#conversion rate for group 1
-			c1 = control_conversion(kpi).to_i
-			c2 = experiment_conversion(kpi).to_i
+		def required_participants_needed_for(kpi)
+			c1 = control_conversion(kpi).to_f / 100.0
+			c2 = experiment_conversion(kpi).to_f / 100.0
 			# average conversion rate
-			ac = ((c1+c2)/2).to_i
-			# required number of participants in test group
-			participants_needed = (16*ac*(1-ac))/((c1-c2)^2).to_i
-			
-			participants_needed - total_participants
-		rescue
-			return -1
+			ac = ((c1+c2)/2.0)
+			# required number of participants in test group - normalized
+			(16*ac*(1-ac))/((c1-c2)*(c1-c2))
 		end
 
 		def experiment_progress(kpi)
-			remining = remaining_participants_needed_for(kpi).to_i
-			return 10 if remining < 0
-			(total_participants.to_f / (total_participants.to_f + remining.to_f)) * 100
+			total_required = required_participants_needed_for(kpi).to_i
+			return 100 if experiment_analytics[:exposures].to_i > total_required
+			
+			(experiment_analytics[:exposures].to_f / total_required).to_i
 		end
 
-		def results_dependable?(kpi)
-		end
-
-		def total_participants
-			experiment_analytics[:exposures].to_i + control_analytics[:exposures].to_i
+		def remaining_participants_needed(kpi)
+			total_required = required_participants_needed_for(kpi).to_i
+			return 0 if total_required < 0
+			
+			result = total_required - experiment_analytics[:exposures].to_i
+			(result < 0) ? 0 : result.to_i
 		end
 
 		def restart!
