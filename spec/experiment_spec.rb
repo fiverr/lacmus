@@ -172,4 +172,19 @@ describe Lacmus::Experiment, "Experiment" do
   	expect(get_kpis_for_experiment(experiment_id1)['ftb'].to_i).to eq(0)
   end
 
+  it "should not mark kpi for exposed experiment after reset" do
+  	experiment_id1 = create_and_activate_experiment
+  	simulate_unique_visitor_exposure(experiment_id1)
+
+		# sleeping 1 second before restarting the experiment
+		# because we want to increment the start_time (and therefore
+		# we won't mark the kpi). the test runs too fast - without sleeping
+		# it'll fail (server_reset_requested? method will return false).
+		sleep 1
+  	Lacmus::Experiment.new(experiment_id1).restart!
+  	reset_active_experiments_cache
+  	mark_kpi!('ftb')
+  	expect(get_kpis_for_experiment(experiment_id1)['ftb'].to_i).to eq(0)
+  end
+
 end

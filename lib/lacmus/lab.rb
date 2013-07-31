@@ -40,7 +40,7 @@ module Lacmus
 				yield(block)
 			rescue Exception => e
 				lacmus_logger "#{__method__}: Failed to render control version\n" <<
-						 "experiment_id: #{experiment_id}, Exception: #{e.inspect}"
+						 					"experiment_id: #{experiment_id}, Exception: #{e.inspect}"
 			end
 
 			def render_experiment_version(experiment_id, &block)	
@@ -56,7 +56,7 @@ module Lacmus
 				yield(block)
 			rescue Exception => e
 				lacmus_logger "#{__method__}: Failed to render experiment version\n" <<
-						 "experiment_id: #{experiment_id}, Exception: #{e.inspect}"
+						 					"experiment_id: #{experiment_id}, Exception: #{e.inspect}"
 			end
 
 			def simple_experiment(experiment_id, control_version, experiment_version)
@@ -77,14 +77,14 @@ module Lacmus
 				return experiment_version
 			rescue Exception => e
 				lacmus_logger "#{__method__}: Failed to render simple experiment\n" <<
-						 "experiment_id: #{experiment_id}, control_version: #{control_version}\n" <<
-						 "experiment_version: #{experiment_version}\n" <<
-						 "Exception: #{e.inspect}"
+											"experiment_id: #{experiment_id}, control_version: #{control_version}\n" <<
+											"experiment_version: #{experiment_version}\n" <<
+											"Exception: #{e.inspect}"
 				control_version
 			end
 
 			def mark_kpi!(kpi)
-				Lacmus::Experiment.mark_kpi!(kpi, exposed_experiments_list, user_belongs_to_control_group?)
+				Lacmus::Experiment.mark_kpi!(kpi, exposed_experiments_list_for_mark_kpi, user_belongs_to_control_group?)
 			rescue Exception => e
 				lacmus_logger "#{__method__}: Failed to mark kpi: #{kpi}, e: #{e.inspect}"
 			end
@@ -146,12 +146,12 @@ module Lacmus
 			end
 
 			def server_reset_requested?(experiment_id)
-				exposed_at = exposed_experiments[experiment_id.to_s]
+				exposed_at = exposed_experiments.select{|i| i.keys.first == experiment_id.to_s}[0][experiment_id.to_s]
 				last_reset = Lacmus::SlotMachine.last_experiment_reset(experiment_id)
 
 				return false if exposed_at.nil?
 				return false if last_reset.nil?
-				return last_reset > exposed_at
+				return last_reset.to_i > exposed_at.to_i
 			end
 
 			# returns the temp user id from the cookies if present. If not,
@@ -223,6 +223,24 @@ module Lacmus
 			# was exposed to.
 			def exposed_experiments_list
 				exposed_experiments.collect{|i| i.keys}.flatten.collect{|i| i.to_i}
+			end
+
+			def exposed_experiments_list_for_mark_kpi
+				experiment_ids = []
+				exposed_experiments.each do |experiment|
+					experiment_id = experiment.keys.first.to_i
+					if should_mark_kpi_for_experiment?(experiment_id)
+						experiment_ids << experiment_id
+					end
+				end
+				experiment_ids
+			end
+
+			def should_mark_kpi_for_experiment?(experiment_id)
+				experiment_id = experiment_id.to_i
+				return false if !Lacmus::Experiment.active?(experiment_id)
+				return false if server_reset_requested?(experiment_id)
+				return true
 			end
 
 			def add_exposure_to_cookie(experiment_id, is_control = false)

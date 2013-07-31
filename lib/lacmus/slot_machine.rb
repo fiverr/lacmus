@@ -122,6 +122,7 @@ module Lacmus
 			ex.start_time = Time.now
 			ex.save
 			set_updated_slots(slots_hash)
+			reset_worker_cache
 		end
 
 		# adds an experiment with metadata to a given list
@@ -336,7 +337,7 @@ module Lacmus
 		end
 
 		def self.last_experiment_reset(experiment_id)
-			cached_exp = $__lcms__active_experiments[experiment_id.to_s]
+			cached_exp = experiment_slots.select{|i| i[:experiment_id].to_s == experiment_id.to_s}[0]
 			return if cached_exp.nil?
 			return cached_exp[:start_time_as_int]
 		end
