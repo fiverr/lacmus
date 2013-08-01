@@ -132,7 +132,7 @@ module Lacmus
 					return server_reset_requested?(experiment_id)
 				else
 					return true if experiment_for_user.to_i != current_experiment_id
-					return true if user_belongs_to_experiment? && server_reset_requested?(experiment_id)
+					return true if user_belongs_to_experiment?(experiment_id) && server_reset_requested?(experiment_id)
 					return false
 				end
 			end
