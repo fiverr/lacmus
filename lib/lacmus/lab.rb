@@ -199,6 +199,14 @@ module Lacmus
 				return "e"
 			end
 
+			def control_group_prefix?
+				value = experiment_cookie_value
+				return false if value.nil?
+
+				cookie_prefix = value.split("|")[0]
+				return cookie_prefix == "c"
+			end
+
 			# returns hash {'234' => 2013-07-25 13:00:36 +0300}
 			# the exposed experiments cookie has a first cell that hints of the user's
 			# slot group (control, empty slot or experiment) followed by the experiments the user was exposed to
@@ -243,10 +251,31 @@ module Lacmus
 				return true
 			end
 
+			# Update the user's experiment cookie with the new exposed
+			# experiment_id. The experiment cookie behave a bit different
+			# for control group users and experiment group users.
+			#
+			# Control group users: Cookie can hold multiple experiments,
+			# as many as active experiments we have.
+			#
+			# Experiment group users: Cookie will hold the current experiment
+			# he's belonged to.
+			# 
+			# == Examples:
+			# 	Control group user, exposed to experiment id 3110 at 1375362524
+			# 	and was exposed to experiment id 3111 at 1375362526
+			# 		=> "c|3110;1375362524|3111;1375362526"
+			#
+			# 	Experiment group user, exposed to experiment id 3112 at 1375362745
+			# 		=> "e|3112;1375362745"
+			#
 			def add_exposure_to_cookie(experiment_id, is_control = false)
 				new_data = "#{experiment_id};#{Time.now.utc.to_i}"
-				if is_control && cookies['lc_xpmnt']
-					data = "#{cookies['lc_xpmnt']}|#{new_data}"
+				# control_group_prefix? is checked because user can switch groups
+				# when experiment_slots is changed. If user was belonged to experiment group
+				# and now is control - we need to recreate his cookie.
+				if is_control && cookies['lc_xpmnt'] && control_group_prefix?
+					data = "#{experiment_cookie_value}|#{new_data}"
 				else
 					data = "#{group_prefix}|#{new_data}"
 				end
