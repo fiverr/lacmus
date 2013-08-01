@@ -211,15 +211,16 @@ module Lacmus
 				exp_id = experiment_hash[:experiment_id]
 				Lacmus::Experiment.new(exp_id).restart!
 				last_reset_as_int = Lacmus::Experiment.new(exp_id).start_time.to_i
-				last_reset_hash.merge!({:exp_id => last_reset_as_int})
+				last_reset_hash.merge!({exp_id.to_i => last_reset_as_int})
 			end
 
 			slot_array.each do |slot|
-				next if slot[:experiment_id] == -1
-				if slot[:experiment_id] == 0
+				exp_id_for_slot = slot[:experiment_id].to_i
+				next if exp_id_for_slot == -1
+				if exp_id_for_slot == 0
 					slot[:start_time_as_int] = Time.now.utc.to_i
 				else
-					slot[:start_time_as_int] = last_reset_hash
+					slot[:start_time_as_int] = last_reset_hash[exp_id_for_slot]
 				end
 			end
 
