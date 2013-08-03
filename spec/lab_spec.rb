@@ -233,13 +233,7 @@ describe Lacmus::Lab, "Lab" do
   	Lacmus::SlotMachine.worker_cache_active = false
 		experiment_id = create_and_activate_experiment
 
-		# calling current_temp_user_id & clear_cookies multiple
-		# times to increase the temp_user_id
-  	current_temp_user_id
-  	clear_cookies
-  	current_temp_user_id
-  	clear_cookies
-  	current_temp_user_id
+		build_tuid_cookie(3)
   	expect(user_belongs_to_control_group?).to be_false
   	simple_experiment(experiment_id, "control", "experiment")
   	expect(control_group_prefix?).to be_false

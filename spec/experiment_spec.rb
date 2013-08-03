@@ -45,6 +45,7 @@ describe Lacmus::Experiment, "Experiment" do
 
   def reset_instance_variables
   	@user_experiment = nil
+  	@uid_hash = nil
   	reset_active_experiments_cache
   end
 
@@ -54,9 +55,9 @@ describe Lacmus::Experiment, "Experiment" do
     obj.experiment_analytics[:exposures].to_i
   end
 
-  def get_kpis_for_experiment(experiment_id)
+  def get_kpis_for_experiment(experiment_id, is_control = false)
     experiment = Lacmus::Experiment.new(experiment_id)
-    experiment.experiment_kpis
+    is_control ? experiment.control_kpis : experiment.experiment_kpis
   end
 
   def simulate_unique_visitor_exposure(experiment_id)
@@ -176,10 +177,8 @@ describe Lacmus::Experiment, "Experiment" do
   	experiment_id1 = create_and_activate_experiment
   	simulate_unique_visitor_exposure(experiment_id1)
 
-		# sleeping 1 second before restarting the experiment
-		# because we want to increment the start_time (and therefore
-		# we won't mark the kpi). the test runs too fast - without sleeping
-		# it'll fail (server_reset_requested? method will return false).
+		# sleeping because the test runs too fast without it
+		# and it'll not affect the experiment's start_time
 		sleep 1
   	Lacmus::Experiment.new(experiment_id1).restart!
   	reset_active_experiments_cache
@@ -191,15 +190,57 @@ describe Lacmus::Experiment, "Experiment" do
   	experiment_id1 = create_and_activate_experiment
   	simulate_unique_visitor_exposure(experiment_id1)
 
-		# sleeping 1 second before restarting the experiment
-		# because we want to increment the start_time (and therefore
-		# we won't mark the kpi). the test runs too fast - without sleeping
-		# it'll fail (server_reset_requested? method will return false).
+		# sleeping because the test runs too fast without it
+		# and it'll not affect the experiment's start_time
 		sleep 1
   	Lacmus::Experiment.new(experiment_id1).restart!
   	reset_active_experiments_cache
   	mark_kpi!('ftb')
   	expect(get_kpis_for_experiment(experiment_id1)['ftb'].to_i).to eq(0)
+  end
+
+  it "should mark 1 kpi for control user after restart" do
+  	Lacmus::SlotMachine.worker_cache_active = false
+		experiment_id = create_and_activate_experiment
+  	build_tuid_cookie(2)
+
+		expect(user_belongs_to_control_group?).to be_true
+		simple_experiment(experiment_id, "control", "experiment")
+		cookie_value_before_restart = experiment_cookie_value
+
+		# sleeping because the test runs too fast without it
+		# and it'll not affect the experiment's start_time
+		sleep 1
+  	Lacmus::Experiment.new(experiment_id).restart!
+
+  	simple_experiment(experiment_id, "control", "experiment")
+  	cookie_value_after_restart = experiment_cookie_value
+  	expect(cookie_value_before_restart).not_to eq(cookie_value_after_restart)
+
+  	mark_kpi!('ftb')
+  	expect(get_kpis_for_experiment(experiment_id, true)['ftb'].to_i).to eq(1)
+  end
+
+  it "should mark 1 kpi for experiment user after restart" do
+  	Lacmus::SlotMachine.worker_cache_active = false
+		experiment_id = create_and_activate_experiment
+		build_tuid_cookie(1)
+
+		expect(user_belongs_to_control_group?).to be_false
+		simple_experiment(experiment_id, "control", "experiment")
+		cookie_value_before_restart = experiment_cookie_value
+
+		# sleeping because the test runs too fast without it
+		# and it'll not affect the experiment's start_time
+		sleep 1
+  	Lacmus::Experiment.new(experiment_id).restart!
+
+  	simple_experiment(experiment_id, "control", "experiment")
+  	cookie_value_after_restart = experiment_cookie_value
+  	expect(cookie_value_before_restart).not_to eq(cookie_value_after_restart)
+
+  	mark_kpi!('ftb')
+  	expect(get_kpis_for_experiment(experiment_id)['ftb'].to_i).to eq(1)
   end
 
 end

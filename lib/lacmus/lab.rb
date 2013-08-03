@@ -86,7 +86,9 @@ module Lacmus
 			def mark_kpi!(kpi)
 				Lacmus::Experiment.mark_kpi!(kpi, exposed_experiments_list_for_mark_kpi, user_belongs_to_control_group?)
 			rescue Exception => e
-				lacmus_logger "#{__method__}: Failed to mark kpi: #{kpi}, e: #{e.inspect}"
+				lacmus_logger "#{__method__}: Failed to mark kpi: #{kpi}\n" <<
+											"Exception message: #{e.inspect}\n" <<
+											"Exception backtrace: #{e.backtrace[0..10]}"
 			end
 
 			# this method generates a cache key to include in caches of the experiment host pages
@@ -271,6 +273,11 @@ module Lacmus
 			#
 			def add_exposure_to_cookie(experiment_id, is_control = false)
 				new_data = "#{experiment_id};#{Time.now.utc.to_i}"
+
+				if cookies['lc_xpmnt'] && exposed_experiments_list.include?(experiment_id.to_i)
+					remove_exposure_from_cookie(experiment_id)
+				end
+
 				# control_group_prefix? is checked because user can switch groups
 				# when experiment_slots is changed. If user was belonged to experiment group
 				# and now is control - we need to recreate his cookie.
@@ -280,6 +287,14 @@ module Lacmus
 					data = "#{group_prefix}|#{new_data}"
 				end
 				cookies['lc_xpmnt'] = {:value => data, :expires => MAX_COOKIE_TIME}	
+			end
+
+			def remove_exposure_from_cookie(experiment_id)
+				return unless experiment_cookie_value
+				exps_array 			 		= experiment_cookie_value.split('|')
+				new_cookie_value 		= exps_array.delete_if {|i| i.start_with?("#{experiment_id};")}
+				new_cookie_value    = new_cookie_value.join('|')
+				cookies['lc_xpmnt'] = {:value => new_cookie_value, :expires => MAX_COOKIE_TIME}	
 			end
 			
 			def build_tuid_cookie(temp_user_id)
