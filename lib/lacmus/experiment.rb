@@ -1,5 +1,4 @@
-require_relative 'settings'
-require_relative 'fast_storage'
+require 'lacmus/settings'
 
 module Lacmus
 	class Experiment
@@ -207,11 +206,11 @@ module Lacmus
 		end
 
 		def self.kpi_key(experiment_id, is_control = false)
-			"#{Lacmus.namespace}-#{is_control}-kpis-#{experiment_id.to_s}"
+			"#{LACMUS_PREFIX}-#{is_control}-kpis-#{experiment_id.to_s}"
 		end
 
 		def self.exposure_key(experiment_id, is_control = false)
-			"#{Lacmus.namespace}-#{is_control}-counter-#{experiment_id.to_s}"
+			"#{LACMUS_PREFIX}-#{is_control}-counter-#{experiment_id.to_s}"
 		end
 
 	end # of Experiment

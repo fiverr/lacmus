@@ -1,4 +1,6 @@
+require 'spec_helper'
 require 'lacmus'
+
 include Lacmus::Lab
 
 describe Lacmus::Experiment, "Experiment" do
@@ -12,7 +14,7 @@ describe Lacmus::Experiment, "Experiment" do
   end
   
   before(:each) do
-    Lacmus::Utils.restart_temp_user_ids
+    Lacmus.restart_temp_user_ids
     Lacmus::SlotMachine.nuke_all_experiments
     reset_active_experiments_cache
   end

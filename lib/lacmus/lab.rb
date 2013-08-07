@@ -1,6 +1,5 @@
-require_relative 'slot_machine'
-require_relative 'experiment'
-require_relative 'utils'
+require 'lacmus/slot_machine'
+require 'lacmus/experiment'
 
 module Lacmus
 	module Lab
@@ -166,7 +165,7 @@ module Lacmus
 				return uid_cookie.to_i if uid_cookie && uid_cookie.respond_to?(:to_i) 
 				return uid_cookie[:value].to_i if uid_cookie && uid_cookie.respond_to?(:keys) 
 
-				new_tmp_id = Utils.generate_tmp_user_id
+				new_tmp_id = Lacmus.generate_tmp_user_id
 				@uid_hash = build_tuid_cookie(new_tmp_id)
 				@uid_hash[:value]
 			end

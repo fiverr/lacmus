@@ -1,6 +1,5 @@
+require 'spec_helper'
 require 'lacmus'
-# https://github.com/rspec/rspec-expectations
-
 
 describe Lacmus::SlotMachine, "Management Features" do
 

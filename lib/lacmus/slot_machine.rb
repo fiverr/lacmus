@@ -1,7 +1,5 @@
-require_relative 'settings'
-require_relative 'fast_storage'
+require 'lacmus/settings'
 require 'redis'
-require 'pry'
 
 module Lacmus
 	module SlotMachine
@@ -259,12 +257,12 @@ module Lacmus
 			Experiment.nuke_experiment(experiment_id)
 		end
 
-		# returns the appropriate key for the given list status
+		# returns the appr
 		#
 		# list
 		# accepts the following values: pending, active, completed
 		def list_key_by_type(list)
-			"#{Lacmus.namespace}-#{list.to_s}-experiments"
+			"#{LACMUS_PREFIX}-#{list.to_s}-experiments"
 		end
 
 		# here we look for an array stored in redis
@@ -366,11 +364,11 @@ module Lacmus
 		end
 
 		def slot_usage_key
-			"#{Lacmus.namespace}-slot-usage"
+			"#{LACMUS_PREFIX}-slot-usage"
 		end
 
 		def generate_experiment_id
-			Lacmus.fast_storage.incr "#{Lacmus.namespace}-last-experiment-id"
+			Lacmus.fast_storage.incr "#{LACMUS_PREFIX}-last-experiment-id"
 		end
 
 	end # of SlotMachine

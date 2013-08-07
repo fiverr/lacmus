@@ -1,39 +1,39 @@
-# require "lacmus/version"
+require 'yaml'
+require 'lacmus/version'
 require 'lacmus/settings'
-require 'lacmus/fast_storage'
-require 'lacmus/utils'
 require 'lacmus/lab'
-require 'lacmus/experiment'
 require 'lacmus/slot_machine'
+require 'lacmus/experiment'
 require 'lacmus/experiment_history'
 
 module Lacmus
 	extend self
 
 	# Constants
-	LACMUS_NAMESPACE = "lcms-#{ENV}"
-
-	# Global Variables
-	$__lacmus_has_rails = defined?(Rails.root)
-	
-	if $__lacmus_has_rails
-		ROOT = $__lacmus_has_rails && Rails.root ? Rails.root : Dir.pwd
-		ENV = Rails.env	
-	else
-		ROOT = ENV == "test" ? "#{Dir.pwd}/spec" : "#{Dir.pwd}/spec"
-		ENV = "test"
-	end
+	LACMUS_PREFIX = "lcms-#{Settings.env_name}"
 
 	# Class Variables
+	@@settings = Settings.load!
 	@@fast_engine = nil
-	@@client_engine = nil
 
 	def fast_storage
-		@@fast_engine ||= Lacmus::FastStorage.instance
+		@@fast_engine ||= Redis.new(@@settings['fast_storage'])
 	end
 
-	def namespace
-		Lacmus::Settings::LACMUS_NAMESPACE
+	# generate a unique temporary user id to use for every user
+	# this allows us to suppot non-logged in users 
+	# the counter will reset itself when it reaches 10M
+	def generate_tmp_user_id
+		index = fast_storage.incr tmp_user_id_key
+		fast_storage.set tmp_user_id_key, 1 if index > 100000000
+		index
 	end
 
+	def restart_temp_user_ids
+		fast_storage.del tmp_user_id_key
+	end
+
+	def tmp_user_id_key
+		"#{LACMUS_PREFIX}-tmp-uid"
+	end
 end

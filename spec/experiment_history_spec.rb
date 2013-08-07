@@ -1,9 +1,11 @@
+require 'spec_helper'
 require 'lacmus'
 
 describe Lacmus::Experiment, "Experiment" do
 
   before(:all) do
   
+    
     @experiment_name = "experimentum"
     @experiment_description = "dekaprius dela karma"
 
@@ -30,7 +32,7 @@ describe Lacmus::Experiment, "Experiment" do
   end
   
   before(:each) do
-    Lacmus::Utils.restart_temp_user_ids
+    Lacmus.restart_temp_user_ids
     Lacmus::SlotMachine.nuke_all_experiments
   end
 

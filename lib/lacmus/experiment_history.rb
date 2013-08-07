@@ -1,6 +1,5 @@
-require_relative 'fast_storage'
-require_relative 'settings'
-require_relative 'experiment'
+require 'lacmus/settings'
+require 'lacmus/experiment'
 require 'redis'
 
 module Lacmus
@@ -28,7 +27,7 @@ module Lacmus
 		end
 
 		def self.key(tmp_user_id)
-			"#{Lacmus.namespace}-exp-history-#{tmp_user_id}"
+			"#{LACMUS_PREFIX}-exp-history-#{tmp_user_id}"
 		end
 	end
 end

@@ -1,20 +1,22 @@
 module Lacmus
 	module Settings
+		extend self
 
-		# Global Variables
-		# TODO: Make this code decent and readable.
-		$__lacmus_has_rails = defined?(Rails.root)
-		if $__lacmus_has_rails
-			ROOT = $__lacmus_has_rails && Rails.root ? Rails.root : Dir.pwd
-			ENV = Rails.env	
-		else
-			ROOT = ENV == "test" ? "#{Dir.pwd}/spec" : "#{Dir.pwd}/spec"
-			ENV = "test"
-		end
+		def load!
+	    YAML.load(File.open("#{root}/config/lacmus.yml"))[env_name]
+	  end
 
-		# Constants
-		LACMUS_NAMESPACE = "lcms-#{ENV}"
+		def env_name
+			return Lacmus::ENV if defined?(Lacmus::ENV)
+	    return Rails.env   if defined?(Rails)
+	    return 'development'
+	  end
 
-		puts "------> Lacmus initiated, ROOT: #{ROOT},  ENV = #{ENV}"
+	  def root
+	  	return Lacmus::ROOT if defined?(Lacmus::ROOT)
+	  	return Rails.root   if defined?(Rails)
+	  	return Dir.pwd
+	  end
+
 	end
 end
