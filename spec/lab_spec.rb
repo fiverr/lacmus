@@ -137,7 +137,6 @@ describe Lacmus::Lab, "Lab" do
   end
 
   it "should increment views and kpis for exeperiments the user was exposed to (control group, simple)" do
-    Lacmus::SlotMachine.worker_cache_active = false
     Lacmus::SlotMachine.resize_and_reset_slot_array(3)
 
     experiment_id1 = create_and_activate_experiment
@@ -156,7 +155,6 @@ describe Lacmus::Lab, "Lab" do
   end
 
   it "should increment views and kpis for exeperiments the user was exposed to (control group, block)" do
-    Lacmus::SlotMachine.worker_cache_active = false
     Lacmus::SlotMachine.resize_and_reset_slot_array(3)
 
     experiment_id1 = create_and_activate_experiment
@@ -178,7 +176,6 @@ describe Lacmus::Lab, "Lab" do
   end
 
   it "should increment views and kpis for exeperiments the user was exposed to (non-control group, simple)" do
-  	Lacmus::SlotMachine.worker_cache_active = false
     Lacmus::SlotMachine.resize_and_reset_slot_array(3)
 
     experiment_id1 = create_and_activate_experiment
@@ -202,7 +199,6 @@ describe Lacmus::Lab, "Lab" do
   end
 
   it "should increment views and kpis for exeperiments the user was exposed to (non-control group, block)" do
-  	Lacmus::SlotMachine.worker_cache_active = false
     Lacmus::SlotMachine.resize_and_reset_slot_array(3)
 
     experiment_id1 = create_and_activate_experiment
@@ -232,7 +228,6 @@ describe Lacmus::Lab, "Lab" do
   end
 
   it "should change the cookie's prefix is user switched to control group after resize" do
-  	Lacmus::SlotMachine.worker_cache_active = false
 		experiment_id = create_and_activate_experiment
 
 		build_tuid_cookie(3)

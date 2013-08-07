@@ -115,7 +115,6 @@ describe Lacmus::SlotMachine, "Management Features" do
 	end
 
 	it "should resize a slot array" do
-		Lacmus::SlotMachine.worker_cache_active = false
 		slots_original = Lacmus::SlotMachine.experiment_slots
 		Lacmus::SlotMachine.resize_and_reset_slot_array(slots_original.count + 1)
 		sleep 1
@@ -168,7 +167,6 @@ describe Lacmus::SlotMachine, "Management Features" do
 	end
 
 	it "should check that resetting an experiment changes its start, and does not affect other experiments" do
-		Lacmus::SlotMachine.worker_cache_active = false
 		Lacmus::SlotMachine.resize_and_reset_slot_array(3)
 		experiment_id1 = create_and_activate_experiment
 		experiment_id2 = create_and_activate_experiment
@@ -188,7 +186,6 @@ describe Lacmus::SlotMachine, "Management Features" do
 	end
 
 	it "should restart the control group when resizing slots" do
-		Lacmus::SlotMachine.worker_cache_active = false
 		experiment_id1 = create_and_activate_experiment
 		control_group_restart_time = Lacmus::SlotMachine.experiment_slots[0][:start_time_as_int]
 

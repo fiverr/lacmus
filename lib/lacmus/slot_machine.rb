@@ -11,7 +11,6 @@ module Lacmus
 		DEFAULT_SLOT_HASH = [CONTROL_SLOT_HASH, EMPTY_SLOT_HASH]
 
 		# Glboal Worker-Level Variables (Worker Cache)
-		$__lcms__worker_cache_active	 = true
 		$__lcms__worker_cache_interval = 60
 		$__lcms__loaded_at_as_int   	 = 0
 		$__lcms__active_experiments 	 = nil
@@ -248,14 +247,6 @@ module Lacmus
 			(get_experiments(:active).count > 0)
 		end
 
-		def worker_cache_active=(value)
-			$__lcms__worker_cache_active = value
-		end
-
-		def worker_cache_interval=(value)
-			$__lcms__worker_cache_interval = value.to_i
-		end
-
 		def reset_worker_cache
 			$__lcms__loaded_at_as_int = 0
 		end
@@ -368,8 +359,7 @@ module Lacmus
 		end
 
 		def worker_cache_valid?
-			$__lcms__worker_cache_active &&
-				$__lcms__loaded_at_as_int.to_i > (Time.now.utc.to_i - $__lcms__worker_cache_interval)
+			$__lcms__loaded_at_as_int.to_i > (Time.now.utc.to_i - $__lcms__worker_cache_interval)
 		end
 
 		def slot_usage_key

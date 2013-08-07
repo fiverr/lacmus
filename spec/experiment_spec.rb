@@ -146,7 +146,6 @@ describe Lacmus::Experiment, "Experiment" do
   end
 
   it "should only add KPIs and exposures to the viewed experiment" do
-    Lacmus::SlotMachine.worker_cache_active = false
     Lacmus::SlotMachine.resize_and_reset_slot_array(3)
     
     experiment_id1 = create_and_activate_experiment
@@ -202,7 +201,6 @@ describe Lacmus::Experiment, "Experiment" do
   end
 
   it "should mark 1 kpi for control user after restart" do
-  	Lacmus::SlotMachine.worker_cache_active = false
 		experiment_id = create_and_activate_experiment
   	build_tuid_cookie(2)
 
@@ -224,7 +222,6 @@ describe Lacmus::Experiment, "Experiment" do
   end
 
   it "should mark 1 kpi for experiment user after restart" do
-  	Lacmus::SlotMachine.worker_cache_active = false
 		experiment_id = create_and_activate_experiment
 		build_tuid_cookie(1)
 

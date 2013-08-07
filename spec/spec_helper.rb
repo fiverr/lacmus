@@ -6,3 +6,5 @@ require 'pry'
 # the correct yml file for test env.
 Lacmus::ROOT = "#{Dir.pwd}/spec"
 Lacmus::ENV  = "test"
+
+$__lcms__worker_cache_interval = 0
