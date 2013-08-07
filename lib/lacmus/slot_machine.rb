@@ -241,34 +241,45 @@ module Lacmus
 			end
 		end
 
-		# @return [ Boolean ] whether there are any active experiments
+		# Check whether there are any active experiments.
+		#
+		# @return [ Boolean ]
 		#
 		def any_active_experiments?
 			(get_experiments(:active).count > 0)
 		end
 
+		# Reset the worker's cache so next time experiment slots
+		# is called we'll get the data from redis.
+		#
 		def reset_worker_cache
 			$__lcms__loaded_at_as_int = 0
 		end
 
-		# permanently deletes an axperiment
+		# Permanently deletes an axperiment
+		#
+		# @param [ Symbol, String ] list The list this experiment belongs to,
+		# 	available options: active, pending, completed
+		# @param [ Integer ] experiment_id Id of the experiment.
+		#
 		def destroy_experiment(list, experiment_id)
 			remove_experiment_from(list, experiment_id)
 			Experiment.nuke_experiment(experiment_id)
 		end
 
-		# returns the appr
+		# Returns the redis key for a given list type
 		#
-		# list
-		# accepts the following values: pending, active, completed
+		# @param [ Symbol, String ] list The list type, available options: active, pending, completed
+		#
 		def list_key_by_type(list)
 			"#{LACMUS_PREFIX}-#{list.to_s}-experiments"
 		end
 
-		# here we look for an array stored in redis
-		# and we look for the first -1 in the array that we find
-		# the 0 represents an open slot
-		# returns nil if no slots are available
+		# Find within the experiment_slot_ids in redis the first
+		# empty slot (represented with -1 value).
+		#
+		# @return [ Integer, nil] The index of the available slot.
+		#
 		def find_available_slot
 			slots = experiment_slot_ids
 			slots.index -1
