@@ -227,14 +227,23 @@ module Lacmus
 			return true
 		end
 
-		# [1,2,3,4,5,-1,-1,-1]
-		# [1,23,4,4,4,-1, 23, 43]
+		# Find the index of the last occupied slot in the given slot_array.
+		#
+		# @param [ Array ] slot_array Array of current experiment slots
+		#
+		# @example
+		# 	find_last_used_slot([3, -1, 5, 8, -1]) # => 4
+		#
+		# @return [ Integer ] Integer representing the last available index.
+		#
 		def find_last_used_slot(slot_array)
 			slot_array.reverse.each_with_index do |i, index|
 				return (slot_array.count - index) if i[:experiment_id] != -1
 			end
 		end
 
+		# @return [ Boolean ] whether there are any active experiments
+		#
 		def any_active_experiments?
 			(get_experiments(:active).count > 0)
 		end

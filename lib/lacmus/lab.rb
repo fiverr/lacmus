@@ -212,7 +212,7 @@ module Lacmus
 			# the exposed experiments cookie has a first cell that hints of the user's
 			# slot group (control, empty slot or experiment) followed by the experiments the user was exposed to
 			#
-			# == Example for cookie: [c|234;29837462924]
+			# === Example for cookie: [c|234;29837462924]
 			def exposed_experiments
 				experiments_array = []
 				if experiment_cookie_value
@@ -262,7 +262,7 @@ module Lacmus
 			# Experiment group users: Cookie will hold the current experiment
 			# he's belonged to.
 			# 
-			# == Examples:
+			# === Examples:
 			# 	Control group user, exposed to experiment id 3110 at 1375362524
 			# 	and was exposed to experiment id 3111 at 1375362526
 			# 		=> "c|3110;1375362524|3111;1375362526"
