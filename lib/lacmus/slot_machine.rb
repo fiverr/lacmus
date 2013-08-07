@@ -285,9 +285,12 @@ module Lacmus
 			slots.index -1
 		end
 
-		# takes a free slot given to it, and assignes an experiment
-		# to it. is the slot is already taken, nothing will happen,
-		# and the function will return false.
+		# Fills a slot with the given experiment_id. No action will be
+		# taken if the slot is already taken.
+		#
+		# @param [ Integer ] experiment_id
+		# @param [ Integer ] slot 
+		#
 		def place_experiment_in_slot(experiment_id, slot)
 			slots = experiment_slots
 			return unless slots[slot] == EMPTY_SLOT_HASH
@@ -296,10 +299,12 @@ module Lacmus
 			set_updated_slots(slots)
 		end
 
-		# clears a slot for a new experiment, by turning
-		# the	previous experiment's id into 0
-		# if *index_to_replace* is nil, the experiment was already
-		# removed from experiment_slot_ids.
+		# Remove the given experiment id from experiment_slots array.
+		# No action will be taken if experiment_id is not part of
+		# experiment_slots array.
+		#
+		# @param [ Integer ] experiment_id
+		#
 		def remove_experiment_from_slot(experiment_id)
 			slots = experiment_slots
 			return if slots.empty?
@@ -311,6 +316,17 @@ module Lacmus
 			end
 		end
 
+		# Returns the experiment id occupying the
+		# given slot (index starting from 0).
+		#
+		# @param [ Integer ] slot
+		#
+		# @example
+		# 	experiment_slot_ids = [5, 13, -1, 9]
+		# 	SlotMachine.get_experiment_id_from_slot(1) # => 13
+		#
+		# @return [ Integer ] The experiment id in the given slot
+		#
 		def get_experiment_id_from_slot(slot)
 			experiment_slot_ids[slot.to_i]
 		end
