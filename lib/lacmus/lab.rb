@@ -84,7 +84,7 @@ module Lacmus
 			end
 
 			def mark_kpi!(kpi)
-				Lacmus::Experiment.mark_kpi!(kpi, exposed_experiments_list_for_mark_kpi, user_belongs_to_control_group?)
+				Experiment.mark_kpi!(kpi, exposed_experiments_list_for_mark_kpi, user_belongs_to_control_group?)
 			rescue Exception => e
 				lacmus_logger "#{__method__}: Failed to mark kpi: #{kpi}\n" <<
 											"Exception message: #{e.inspect}\n" <<
@@ -100,7 +100,7 @@ module Lacmus
 			def lacmus_cache_key
 				return '0' unless @uid_hash || temp_user_id_cookie
 
-				experiment_id = Lacmus::SlotMachine.get_experiment_id_from_slot(slot_for_user).to_i
+				experiment_id = SlotMachine.get_experiment_id_from_slot(slot_for_user).to_i
 				return '0' if [0,-1].include?(experiment_id)
 				return experiment_id.to_s
 			rescue Exception => e
@@ -114,7 +114,7 @@ module Lacmus
 			end
 
 			def experiment_for_user
-				@user_experiment ||= Lacmus::SlotMachine.get_experiment_id_from_slot(slot_for_user)
+				@user_experiment ||= SlotMachine.get_experiment_id_from_slot(slot_for_user)
 			end
 
 			def user_belongs_to_experiment?(experiment_id)
@@ -126,7 +126,7 @@ module Lacmus
 			end
 
 			def should_mark_experiment_view?(experiment_id, is_control = false)
-				return false if !Lacmus::Experiment.active?(experiment_id)
+				return false if !Experiment.active?(experiment_id)
 				return true if exposed_experiments.empty?
 
 				if is_control
@@ -143,13 +143,13 @@ module Lacmus
 			# he belongs to and increment the experiment's views.
 			def mark_experiment_view(experiment_id, is_control = false)
 				add_exposure_to_cookie(experiment_id, is_control)
-				Lacmus::Experiment.track_experiment_exposure(experiment_id, is_control)
-				Lacmus::ExperimentHistory.log_experiment(experiment_for_user, Time.now.utc)
+				Experiment.track_experiment_exposure(experiment_id, is_control)
+				ExperimentHistory.log_experiment(experiment_for_user, Time.now.utc)
 			end
 
 			def server_reset_requested?(experiment_id)
 				exposed_at = exposed_experiments.select{|i| i.keys.first == experiment_id.to_s}[0][experiment_id.to_s]
-				last_reset = Lacmus::SlotMachine.last_experiment_reset(experiment_id)
+				last_reset = SlotMachine.last_experiment_reset(experiment_id)
 
 				return false if exposed_at.nil?
 				return false if last_reset.nil?
@@ -166,7 +166,7 @@ module Lacmus
 				return uid_cookie.to_i if uid_cookie && uid_cookie.respond_to?(:to_i) 
 				return uid_cookie[:value].to_i if uid_cookie && uid_cookie.respond_to?(:keys) 
 
-				new_tmp_id = Lacmus::Utils.generate_tmp_user_id
+				new_tmp_id = Utils.generate_tmp_user_id
 				@uid_hash = build_tuid_cookie(new_tmp_id)
 				@uid_hash[:value]
 			end
@@ -184,7 +184,7 @@ module Lacmus
 			# gets the user's slot in the experiment slot list,
 			# having the first slot as the control group (equals to 0)
 			def slot_for_user
-				current_temp_user_id % Lacmus::SlotMachine.experiment_slot_ids.count
+				current_temp_user_id % SlotMachine.experiment_slot_ids.count
 			end
 
 			def temp_user_id_cookie
@@ -248,7 +248,7 @@ module Lacmus
 
 			def should_mark_kpi_for_experiment?(experiment_id)
 				experiment_id = experiment_id.to_i
-				return false if !Lacmus::Experiment.active?(experiment_id)
+				return false if !Experiment.active?(experiment_id)
 				return false if server_reset_requested?(experiment_id)
 				return true
 			end

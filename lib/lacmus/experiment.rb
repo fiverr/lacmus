@@ -24,7 +24,7 @@ module Lacmus
 				experiment = value
 				id = experiment[:experiment_id]
 			else
-				experiment = Lacmus::SlotMachine.find_experiment(value.to_i)
+				experiment = SlotMachine.find_experiment(value.to_i)
 				id = value
 			end
 
@@ -72,7 +72,7 @@ module Lacmus
 		end
 
 		def save
-			original_experiment = Lacmus::SlotMachine.get_experiment_from(@status, @id)
+			original_experiment = SlotMachine.get_experiment_from(@status, @id)
 			metadata = {
 				:name => @name, 
 				:description => @description,
@@ -180,11 +180,11 @@ module Lacmus
 		end
 
 		def restart!
-			Lacmus::SlotMachine.restart_experiment(id)
+			SlotMachine.restart_experiment(id)
 		end
 
 		def self.active?(experiment_id)
-			Lacmus::SlotMachine.experiment_slot_ids.include?(experiment_id.to_i)
+			SlotMachine.experiment_slot_ids.include?(experiment_id.to_i)
 		end
 
 		private
@@ -194,12 +194,12 @@ module Lacmus
 		end
 
 		def list_key_by_type(list)
-			Lacmus::SlotMachine.list_key_by_type(list)
+			SlotMachine.list_key_by_type(list)
 		end
 	
 		def self.all_from(list)
 			experiments = []
-			experiments_as_hash = Lacmus::SlotMachine.get_experiments(list)
+			experiments_as_hash = SlotMachine.get_experiments(list)
 			experiments_as_hash.each do |exp_hash|
 				experiments << Experiment.new(exp_hash)
 			end

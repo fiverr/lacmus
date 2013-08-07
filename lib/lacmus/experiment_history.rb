@@ -5,18 +5,19 @@ require 'redis'
 
 module Lacmus
 	module ExperimentHistory
+		extend self
 
 		# Constants
 		KEY_EXPIRE_IN_SECONDS = 2592000 # 1 month
 
-		def self.log_experiment(tmp_user_id, experiment_id)
+		def log_experiment(tmp_user_id, experiment_id)
 			Lacmus.fast_storage.multi do
 				Lacmus.fast_storage.zadd key(tmp_user_id), Time.now.to_i, experiment_id
 				Lacmus.fast_storage.expire key(tmp_user_id), KEY_EXPIRE_IN_SECONDS
 			end
 		end
 
-		def self.experiments(tmp_user_id)
+		def experiments(tmp_user_id)
 			history_items = []
 			history_data = Lacmus.fast_storage.zrange(key(tmp_user_id), 0, -1, :with_scores => true)
 			history_data.each do |history_item|
