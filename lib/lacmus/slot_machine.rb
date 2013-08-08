@@ -228,12 +228,16 @@ module Lacmus
 
 		# Find the index of the last occupied slot in the given slot_array.
 		#
-		# @param [ Array ] slot_array Array of current experiment slots
+		# @param [ Array<Hash> ] slot_array Array of experiment slots
 		#
 		# @example
-		# 	find_last_used_slot([3, -1, 5, 8, -1]) # => 4
+		# 	slot_array = [{:experiment_id=>0, :start_time_as_int=>0}, {:experiment_id=>-1, :start_time_as_int=>1233242234},
+		#									{:experiment_id=>3, :start_time_as_int=>13212380}, {:experiment_id=>-1, :start_time_as_int=>0}]
 		#
-		# @return [ Integer ] Integer representing the last available index.
+		# 	find_last_used_slot(slot_array) # => 2
+		#
+		# @return [ nil ] if slot_array contains empty slots only (experiment_id = -1).
+		# @return [ Integer ] if there is any active experiment, representing the last available index.
 		#
 		def find_last_used_slot(slot_array)
 			slot_array.reverse.each_with_index do |i, index|
@@ -338,7 +342,7 @@ module Lacmus
 		# If we don't have such redis key, the default expeiment slots
 		# will initialize.
 		#
-		# @return [ Array ] Array of hashes contaning the active experiments
+		# @return [ Array<Hash> ] Array of hashes contaning the active experiments
 		#
 		def experiment_slots
 			if worker_cache_valid?
@@ -355,22 +359,35 @@ module Lacmus
 			$__lcms__active_experiments
 		end
 
+		# Convenience method to return the ids of the active experiments.
+		#
+		# @return [ Array<Inreger> ] Array of experiment ids.
+		#
+		def experiment_slot_ids
+			experiment_slots.collect{|slot| slot[:experiment_id].to_i}
+		end
+
+		def experiment_slot_ids_without_control_group
+			experiment_slot_ids[1..-1]
+		end
+
 		# Marshal the given experiment slot ids and update the
 		# redis key.
 		#
-		# @param [ Array ] slots Array of experiment slot ids
+		# @param [ Array<Hash> ] slots Array of experiment slot ids
 		#
 		def update_experiment_slots(slots)
 			Lacmus.fast_storage.set slot_usage_key, Marshal.dump(slots)
 		end
 
-		# reset slot machine to default
+		# Reset the active experiment slots array.
+		#
 		def reset_slots_to_defaults
 			Lacmus.fast_storage.del slot_usage_key
 		end
 
-		# Clears the entire experiment slots array, without changing the size
-		# of the array.
+		# Clears the entire experiment slots array,
+		# without changing the size of the array.
 		#
 		def clear_experiment_slot_ids
 			result = experiment_slots
@@ -379,18 +396,20 @@ module Lacmus
 			update_experiment_slots(clean_array)
 		end
 
+		# Returns the last experiment reset of the given active
+		# experiment_id.
+		#
+		# @param [ Integer, String ] experiment_id The experiment id
+		#
+		# @return [ nil ] if there is no such experiment_id or the experiment
+		# 	is no longer active.
+		#
+		# @return [ Integer ] The last experiment reset time.
+		#
 		def last_experiment_reset(experiment_id)
 			cached_exp = experiment_slots.select{|i| i[:experiment_id].to_s == experiment_id.to_s}[0]
 			return if cached_exp.nil?
 			return cached_exp[:start_time_as_int]
-		end
-
-		def experiment_slot_ids
-			experiment_slots.collect{|slot| slot[:experiment_id].to_i}
-		end
-
-		def experiment_slot_ids_without_control_group
-			experiment_slot_ids[1..-1]
 		end
 
 		private
