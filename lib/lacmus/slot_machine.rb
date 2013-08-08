@@ -367,12 +367,16 @@ module Lacmus
 			experiment_slots.collect{|slot| slot[:experiment_id].to_i}
 		end
 
+		# Convenience method to return the ids of the active experiments
+		# excluding the control group slot.
+		#
+		# @return [ Array<Inreger> ] Array of experiment ids.
+		#
 		def experiment_slot_ids_without_control_group
 			experiment_slot_ids[1..-1]
 		end
 
-		# Marshal the given experiment slot ids and update the
-		# redis key.
+		# Marshal the given experiment slot ids and update the redis key.
 		#
 		# @param [ Array<Hash> ] slots Array of experiment slot ids
 		#
@@ -387,7 +391,7 @@ module Lacmus
 		end
 
 		# Clears the entire experiment slots array,
-		# without changing the size of the array.
+		# without modifying the size of the array.
 		#
 		def clear_experiment_slot_ids
 			result = experiment_slots
