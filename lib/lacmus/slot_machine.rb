@@ -118,7 +118,7 @@ module Lacmus
 			slots_hash[slot][:start_time_as_int] = Time.now.utc.to_i
 			ex.start_time = Time.now
 			ex.save
-			set_updated_slots(slots_hash)
+			update_experiment_slots(slots_hash)
 			reset_worker_cache
 		end
 
@@ -296,7 +296,7 @@ module Lacmus
 			return unless slots[slot] == EMPTY_SLOT_HASH
 
 			slots[slot] = {:experiment_id => experiment_id, :start_time_as_int => Time.now.utc.to_i}
-			set_updated_slots(slots)
+			update_experiment_slots(slots)
 		end
 
 		# Remove the given experiment id from experiment_slots array.
@@ -312,7 +312,7 @@ module Lacmus
 			index_to_replace = slots.find_index {|i| i[:experiment_id].to_i == experiment_id.to_i}
 			if index_to_replace
 				slots[index_to_replace] = EMPTY_SLOT_HASH
-				set_updated_slots(slots)
+				update_experiment_slots(slots)
 			end
 		end
 
@@ -336,7 +336,7 @@ module Lacmus
 		#
 		# @param [ Array ] slots Array of experiment slot ids
 		#
-		def set_updated_slots(slots)
+		def update_experiment_slots(slots)
 			Lacmus.fast_storage.set slot_usage_key, Marshal.dump(slots)
 		end
 
@@ -347,7 +347,7 @@ module Lacmus
 			result = Marshal.load(Lacmus.fast_storage.get slot_usage_key)
 			slots_to_add = result.size - 1
 			clean_array = [CONTROL_SLOT_HASH] + Array.new(slots_to_add){EMPTY_SLOT_HASH}
-			set_updated_slots(clean_array)
+			update_experiment_slots(clean_array)
 		end
 
 		# reset slot machine to default
