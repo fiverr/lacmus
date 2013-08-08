@@ -331,30 +331,15 @@ module Lacmus
 			experiment_slot_ids[slot.to_i]
 		end
 
-		# Marshal the given experiment slot ids and update the
-		# redis key.
+		# Returns the current active experiments. For performence reasons
+		# we'll try to fetch the data from memory first, if we can't (because data
+		# is outdated, for example) we'll get it from redis.
 		#
-		# @param [ Array ] slots Array of experiment slot ids
+		# If we don't have such redis key, the default expeiment slots
+		# will initialize.
 		#
-		def update_experiment_slots(slots)
-			Lacmus.fast_storage.set slot_usage_key, Marshal.dump(slots)
-		end
-
-		# Clears the entire experiment slots array, without changing the size
-		# of the array.
+		# @return [ Array ] Array of hashes contaning the active experiments
 		#
-		def clear_experiment_slot_ids
-			result = experiment_slots
-			slots_to_add = result.size - 1
-			clean_array = [CONTROL_SLOT_HASH] + Array.new(slots_to_add){EMPTY_SLOT_HASH}
-			update_experiment_slots(clean_array)
-		end
-
-		# reset slot machine to default
-		def reset_slots_to_defaults
-			Lacmus.fast_storage.del slot_usage_key
-		end
-
 		def experiment_slots
 			if worker_cache_valid?
 				return $__lcms__active_experiments
@@ -368,6 +353,30 @@ module Lacmus
 				init_slots
 			end
 			$__lcms__active_experiments
+		end
+
+		# Marshal the given experiment slot ids and update the
+		# redis key.
+		#
+		# @param [ Array ] slots Array of experiment slot ids
+		#
+		def update_experiment_slots(slots)
+			Lacmus.fast_storage.set slot_usage_key, Marshal.dump(slots)
+		end
+
+		# reset slot machine to default
+		def reset_slots_to_defaults
+			Lacmus.fast_storage.del slot_usage_key
+		end
+
+		# Clears the entire experiment slots array, without changing the size
+		# of the array.
+		#
+		def clear_experiment_slot_ids
+			result = experiment_slots
+			slots_to_add = result.size - 1
+			clean_array = [CONTROL_SLOT_HASH] + Array.new(slots_to_add){EMPTY_SLOT_HASH}
+			update_experiment_slots(clean_array)
 		end
 
 		def last_experiment_reset(experiment_id)
