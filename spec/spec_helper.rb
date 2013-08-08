@@ -7,4 +7,6 @@ require 'pry'
 Lacmus::ROOT = "#{Dir.pwd}/spec"
 Lacmus::ENV  = "test"
 
+# Set the cache interval to zero, which means we won't cache
+# experiment slots on test env (all calls will pull it from redis)
 $__lcms__worker_cache_interval = 0

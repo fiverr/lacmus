@@ -331,16 +331,23 @@ module Lacmus
 			experiment_slot_ids[slot.to_i]
 		end
 
+		# Marshal the given experiment slot ids and update the
+		# redis key.
+		#
+		# @param [ Array ] slots Array of experiment slot ids
+		#
 		def set_updated_slots(slots)
 			Lacmus.fast_storage.set slot_usage_key, Marshal.dump(slots)
 		end
 
-		# clear all experiment slots, leaving the number of slots untouched
+		# Clears the entire experiment slots array, without changing the size
+		# of the array.
+		#
 		def clear_experiment_slot_ids
 			result = Marshal.load(Lacmus.fast_storage.get slot_usage_key)
 			slots_to_add = result.size - 1
 			clean_array = [CONTROL_SLOT_HASH] + Array.new(slots_to_add){EMPTY_SLOT_HASH}
-			Lacmus.fast_storage.set slot_usage_key, Marshal.dump(clean_array)
+			set_updated_slots(clean_array)
 		end
 
 		# reset slot machine to default
