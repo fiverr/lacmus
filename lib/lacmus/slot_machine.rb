@@ -344,7 +344,7 @@ module Lacmus
 		# of the array.
 		#
 		def clear_experiment_slot_ids
-			result = Marshal.load(Lacmus.fast_storage.get slot_usage_key)
+			result = experiment_slots
 			slots_to_add = result.size - 1
 			clean_array = [CONTROL_SLOT_HASH] + Array.new(slots_to_add){EMPTY_SLOT_HASH}
 			update_experiment_slots(clean_array)
