@@ -1,4 +1,4 @@
-require 'lacmus/settings'
+require 'lacmus'
 require 'lacmus/experiment'
 require 'redis'
 
