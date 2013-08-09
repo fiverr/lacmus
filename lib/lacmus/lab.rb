@@ -40,7 +40,7 @@ module Lacmus
 				yield(block)
 			rescue Exception => e
 				lacmus_logger "#{__method__}: Failed to render control version\n" <<
-						 "experiment_id: #{experiment_id}, Exception: #{e.inspect}"
+						 					"experiment_id: #{experiment_id}, Exception: #{e.inspect}"
 			end
 
 			def render_experiment_version(experiment_id, &block)	
@@ -56,7 +56,7 @@ module Lacmus
 				yield(block)
 			rescue Exception => e
 				lacmus_logger "#{__method__}: Failed to render experiment version\n" <<
-						 "experiment_id: #{experiment_id}, Exception: #{e.inspect}"
+						 					"experiment_id: #{experiment_id}, Exception: #{e.inspect}"
 			end
 
 			def simple_experiment(experiment_id, control_version, experiment_version)
@@ -77,16 +77,18 @@ module Lacmus
 				return experiment_version
 			rescue Exception => e
 				lacmus_logger "#{__method__}: Failed to render simple experiment\n" <<
-						 "experiment_id: #{experiment_id}, control_version: #{control_version}\n" <<
-						 "experiment_version: #{experiment_version}\n" <<
-						 "Exception: #{e.inspect}"
+											"experiment_id: #{experiment_id}, control_version: #{control_version}\n" <<
+											"experiment_version: #{experiment_version}\n" <<
+											"Exception: #{e.inspect}"
 				control_version
 			end
 
 			def mark_kpi!(kpi)
-				Lacmus::Experiment.mark_kpi!(kpi, exposed_experiments_list, user_belongs_to_control_group?)
+				Lacmus::Experiment.mark_kpi!(kpi, exposed_experiments_list_for_mark_kpi, user_belongs_to_control_group?)
 			rescue Exception => e
-				lacmus_logger "#{__method__}: Failed to mark kpi: #{kpi}, e: #{e.inspect}"
+				lacmus_logger "#{__method__}: Failed to mark kpi: #{kpi}\n" <<
+											"Exception message: #{e.inspect}\n" <<
+											"Exception backtrace: #{e.backtrace[0..10]}"
 			end
 
 			# this method generates a cache key to include in caches of the experiment host pages
@@ -132,7 +134,7 @@ module Lacmus
 					return server_reset_requested?(experiment_id)
 				else
 					return true if experiment_for_user.to_i != current_experiment_id
-					return true if user_belongs_to_experiment? && server_reset_requested?(experiment_id)
+					return true if user_belongs_to_experiment?(experiment_id) && server_reset_requested?(experiment_id)
 					return false
 				end
 			end
@@ -146,12 +148,12 @@ module Lacmus
 			end
 
 			def server_reset_requested?(experiment_id)
-				exposed_at = exposed_experiments[experiment_id.to_s]
+				exposed_at = exposed_experiments.select{|i| i.keys.first == experiment_id.to_s}[0][experiment_id.to_s]
 				last_reset = Lacmus::SlotMachine.last_experiment_reset(experiment_id)
 
 				return false if exposed_at.nil?
 				return false if last_reset.nil?
-				return last_reset > exposed_at
+				return last_reset.to_i > exposed_at.to_i
 			end
 
 			# returns the temp user id from the cookies if present. If not,
@@ -199,6 +201,14 @@ module Lacmus
 				return "e"
 			end
 
+			def control_group_prefix?
+				value = experiment_cookie_value
+				return false if value.nil?
+
+				cookie_prefix = value.split("|")[0]
+				return cookie_prefix == "c"
+			end
+
 			# returns hash {'234' => 2013-07-25 13:00:36 +0300}
 			# the exposed experiments cookie has a first cell that hints of the user's
 			# slot group (control, empty slot or experiment) followed by the experiments the user was exposed to
@@ -225,14 +235,66 @@ module Lacmus
 				exposed_experiments.collect{|i| i.keys}.flatten.collect{|i| i.to_i}
 			end
 
+			def exposed_experiments_list_for_mark_kpi
+				experiment_ids = []
+				exposed_experiments.each do |experiment|
+					experiment_id = experiment.keys.first.to_i
+					if should_mark_kpi_for_experiment?(experiment_id)
+						experiment_ids << experiment_id
+					end
+				end
+				experiment_ids
+			end
+
+			def should_mark_kpi_for_experiment?(experiment_id)
+				experiment_id = experiment_id.to_i
+				return false if !Lacmus::Experiment.active?(experiment_id)
+				return false if server_reset_requested?(experiment_id)
+				return true
+			end
+
+			# Update the user's experiment cookie with the new exposed
+			# experiment_id. The experiment cookie behave a bit different
+			# for control group users and experiment group users.
+			#
+			# Control group users: Cookie can hold multiple experiments,
+			# as many as active experiments we have.
+			#
+			# Experiment group users: Cookie will hold the current experiment
+			# he's belonged to.
+			# 
+			# == Examples:
+			# 	Control group user, exposed to experiment id 3110 at 1375362524
+			# 	and was exposed to experiment id 3111 at 1375362526
+			# 		=> "c|3110;1375362524|3111;1375362526"
+			#
+			# 	Experiment group user, exposed to experiment id 3112 at 1375362745
+			# 		=> "e|3112;1375362745"
+			#
 			def add_exposure_to_cookie(experiment_id, is_control = false)
 				new_data = "#{experiment_id};#{Time.now.utc.to_i}"
-				if is_control && cookies['lc_xpmnt']
-					data = "#{cookies['lc_xpmnt']}|#{new_data}"
+
+				if cookies['lc_xpmnt'] && exposed_experiments_list.include?(experiment_id.to_i)
+					remove_exposure_from_cookie(experiment_id)
+				end
+
+				# control_group_prefix? is checked because user can switch groups
+				# when experiment_slots is changed. If user was belonged to experiment group
+				# and now is control - we need to recreate his cookie.
+				if is_control && cookies['lc_xpmnt'] && control_group_prefix?
+					data = "#{experiment_cookie_value}|#{new_data}"
 				else
 					data = "#{group_prefix}|#{new_data}"
 				end
 				cookies['lc_xpmnt'] = {:value => data, :expires => MAX_COOKIE_TIME}	
+			end
+
+			def remove_exposure_from_cookie(experiment_id)
+				return unless experiment_cookie_value
+				exps_array 			 		= experiment_cookie_value.split('|')
+				new_cookie_value 		= exps_array.delete_if {|i| i.start_with?("#{experiment_id};")}
+				new_cookie_value    = new_cookie_value.join('|')
+				cookies['lc_xpmnt'] = {:value => new_cookie_value, :expires => MAX_COOKIE_TIME}	
 			end
 			
 			def build_tuid_cookie(temp_user_id)

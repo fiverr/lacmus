@@ -116,7 +116,7 @@ describe Lacmus::SlotMachine, "Management Features" do
 	end
 
 	it "should resize a slot array" do
-		Lacmus::SlotMachine.worker_cache_interval = 0
+		Lacmus::SlotMachine.worker_cache_active = false
 		slots_original = Lacmus::SlotMachine.experiment_slots
 		Lacmus::SlotMachine.resize_and_reset_slot_array(slots_original.count + 1)
 		sleep 1
@@ -186,6 +186,17 @@ describe Lacmus::SlotMachine, "Management Features" do
 		update_time2 = Time.at(Lacmus::SlotMachine.experiment_slots[2][:start_time_as_int].to_i)
 		expect(update_time1).to be > creation_time1
 		expect(update_time2).to eq(creation_time2)
+	end
+
+	it "should restart the control group when resizing slots" do
+		Lacmus::SlotMachine.worker_cache_active = false
+		experiment_id1 = create_and_activate_experiment
+		control_group_restart_time = Lacmus::SlotMachine.experiment_slots[0][:start_time_as_int]
+
+		sleep 1
+		Lacmus::SlotMachine.resize_and_reset_slot_array(5)
+		control_group_restart_time2 = Lacmus::SlotMachine.experiment_slots[0][:start_time_as_int]
+		expect(control_group_restart_time2).to be > control_group_restart_time
 	end
 
 end

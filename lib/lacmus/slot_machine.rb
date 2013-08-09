@@ -122,6 +122,7 @@ module Lacmus
 			ex.start_time = Time.now
 			ex.save
 			set_updated_slots(slots_hash)
+			reset_worker_cache
 		end
 
 		# adds an experiment with metadata to a given list
@@ -192,6 +193,7 @@ module Lacmus
 
 		def self.resize_and_reset_slot_array(new_size)
 			slot_array = experiment_slots
+			last_reset_hash = {}
 			new_size = new_size.to_i
 
 			if new_size <= slot_array.count
@@ -205,11 +207,26 @@ module Lacmus
 				slot_array += Array.new(slots_to_add){EMPTY_SLOT_HASH}
 			end
 
-			get_experiments(:active).each {|e| Lacmus::Experiment.new(e).restart!}
-			reset_worker_cache
-			Lacmus.fast_storage.set slot_usage_key, Marshal.dump(slot_array)
+			get_experiments(:active).each do |experiment_hash|
+				exp_id = experiment_hash[:experiment_id]
+				Lacmus::Experiment.new(exp_id).restart!
+				last_reset_as_int = Lacmus::Experiment.new(exp_id).start_time.to_i
+				last_reset_hash.merge!({exp_id.to_i => last_reset_as_int})
+			end
 
-			true
+			slot_array.each do |slot|
+				exp_id_for_slot = slot[:experiment_id].to_i
+				next if exp_id_for_slot == -1
+				if exp_id_for_slot == 0
+					slot[:start_time_as_int] = Time.now.utc.to_i
+				else
+					slot[:start_time_as_int] = last_reset_hash[exp_id_for_slot]
+				end
+			end
+
+			Lacmus.fast_storage.set slot_usage_key, Marshal.dump(slot_array)
+			reset_worker_cache
+			return true
 		end
 
 		# [1,2,3,4,5,-1,-1,-1]
@@ -336,7 +353,7 @@ module Lacmus
 		end
 
 		def self.last_experiment_reset(experiment_id)
-			cached_exp = $__lcms__active_experiments[experiment_id.to_s]
+			cached_exp = experiment_slots.select{|i| i[:experiment_id].to_s == experiment_id.to_s}[0]
 			return if cached_exp.nil?
 			return cached_exp[:start_time_as_int]
 		end

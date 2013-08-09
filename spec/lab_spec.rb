@@ -229,4 +229,21 @@ describe Lacmus::Lab, "Lab" do
     expect(Lacmus::Experiment.new(experiment_id2).control_analytics[:exposures].to_i).to eq(0)
   end
 
+  it "should change the cookie's prefix is user switched to control group after resize" do
+  	Lacmus::SlotMachine.worker_cache_active = false
+		experiment_id = create_and_activate_experiment
+
+		build_tuid_cookie(3)
+  	expect(user_belongs_to_control_group?).to be_false
+  	simple_experiment(experiment_id, "control", "experiment")
+  	expect(control_group_prefix?).to be_false
+
+  	Lacmus::SlotMachine.resize_and_reset_slot_array(3)
+  	experiment_id2 = create_and_activate_experiment
+  	expect(user_belongs_to_control_group?).to be_true
+
+  	simple_experiment(experiment_id2, "control", "experiment")
+  	expect(control_group_prefix?).to be_true
+  end
+
 end
