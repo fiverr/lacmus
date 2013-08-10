@@ -33,7 +33,7 @@ module Lacmus
 		# 
 		# this is done by trying to find an empty experiment slot
 		# and moving the experiment from the pending list to the active
-		# ones list. q
+		# ones list.
 		# 
 		# returns true on success, false on failure
 		def activate_experiment(experiment_id)
@@ -195,8 +195,8 @@ module Lacmus
 
 			if new_size <= slot_array.count
 				last_used_index = find_last_used_slot(slot_array)
-				# if there is an experiment occupying a slot that is
-				# located after the size requested, we do not allow
+				# return false if there is an occupied slot
+				# located after the size requested
 				return false if last_used_index > new_size
 				slot_array = slot_array[0...new_size]
 			else
@@ -221,7 +221,7 @@ module Lacmus
 				end
 			end
 
-			Lacmus.fast_storage.set slot_usage_key, Marshal.dump(slot_array)
+			update_experiment_slots(slot_array)
 			reset_worker_cache
 			return true
 		end
@@ -418,20 +418,40 @@ module Lacmus
 
 		private
 
+		# Intialize the experiment slots array using the
+		# DEFAULT_SLOT_HASH constant.
+		#
 		def init_slots
 			$__lcms__active_experiments = DEFAULT_SLOT_HASH.dup
 			$__lcms__loaded_at_as_int = Time.now.utc.to_i
-			Lacmus.fast_storage.set slot_usage_key, Marshal.dump($__lcms__active_experiments)
+			update_experiment_slots($__lcms__active_experiments)
 		end
 
+		# Check if the cached global variables are valid, based on
+		# the value of $__lcms__worker_cache_interval (defaults to 60).
+		# $__lcms__worker_cache_interval = 60 means the cache is valid
+		# for 60 seconds. 
+		#
+		# @return [ Boolean ] true if the cache is valid, false otherwise
+		#
 		def worker_cache_valid?
 			$__lcms__loaded_at_as_int.to_i > (Time.now.utc.to_i - $__lcms__worker_cache_interval)
 		end
 
+		# Convenience method to work with experiment slots.
+		#
+		# @return [ String ] String representing the redis key
+		#
 		def slot_usage_key
 			"#{LACMUS_PREFIX}-slot-usage"
 		end
 
+		# Generate a new (and unique) experiment id
+		#
+		# @example SlotMachine.generate_experiment_id # => 3
+		#
+		# @return [ Integer ] representing the new experiment id
+		#
 		def generate_experiment_id
 			Lacmus.fast_storage.incr "#{LACMUS_PREFIX}-last-experiment-id"
 		end
