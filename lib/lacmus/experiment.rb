@@ -26,7 +26,10 @@ module Lacmus
 				experiment = SlotMachine.find_experiment(value.to_i)
 				id = value
 			end
+			set_instance_variables(id, experiment)
+		end
 
+		def set_instance_variables(id, experiment)
 			@id 									= id
 			@status 							= experiment[:status]
 			@name 								= experiment[:name]
@@ -39,6 +42,11 @@ module Lacmus
 			@control_analytics 		= load_experiment_analytics(true) || {}
 			@experiment_analytics = load_experiment_analytics || {}
 			@errors = []
+		end
+
+		def reload
+			updated_experiment = SlotMachine.find_experiment(id)
+			set_instance_variables(id, updated_experiment)
 		end
 	
 		def available_kpis

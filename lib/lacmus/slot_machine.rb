@@ -188,6 +188,8 @@ module Lacmus
 			reset_slots_to_defaults
 		end
 
+		# Resize the experiment slots array based on the
+		# given new size.
 		def resize_and_reset_slot_array(new_size)
 			slot_array = experiment_slots
 			last_reset_hash = {}
@@ -205,10 +207,10 @@ module Lacmus
 			end
 
 			get_experiments(:active).each do |experiment_hash|
-				exp_id = experiment_hash[:experiment_id]
-				Experiment.new(exp_id).restart!
-				last_reset_as_int = Experiment.new(exp_id).start_time.to_i
-				last_reset_hash.merge!({exp_id.to_i => last_reset_as_int})
+				exp = Experiment.new(experiment_hash[:experiment_id])
+				exp.restart!
+				exp.reload
+				last_reset_hash.merge!({exp.id => exp.start_time.to_i})
 			end
 
 			slot_array.each do |slot|
