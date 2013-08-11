@@ -10,10 +10,17 @@ module Lacmus
 		EMPTY_SLOT_HASH   = {:experiment_id => -1, :start_time_as_int => 0}
 		DEFAULT_SLOT_HASH = [CONTROL_SLOT_HASH, EMPTY_SLOT_HASH]
 
-		# Glboal Worker-Level Variables (Worker Cache)
+		# Represents (in seconds) how long the cache is going to be valid.
+		# Default to 60 means we'll query the database only once a minute.
 		$__lcms__worker_cache_interval = 60
-		$__lcms__loaded_at_as_int   	 = 0
-		$__lcms__active_experiments 	 = nil
+
+		# Represents the last time (as integer) the attributes were cached.
+		# Combined with $__lcms__worker_cache_interval, we can determine when
+		# the cache is not valid anymore.
+		$__lcms__loaded_at_as_int = 0
+
+		# Reprsents the current active experiments (experiment_slots method).
+		$__lcms__active_experiments = nil
 
 		# Create a new experiment and add it to the pending list.
 		#
@@ -429,12 +436,9 @@ module Lacmus
 			update_experiment_slots($__lcms__active_experiments)
 		end
 
-		# Check if the cached global variables are valid, based on
-		# the value of $__lcms__worker_cache_interval (defaults to 60).
-		# $__lcms__worker_cache_interval = 60 means the cache is valid
-		# for 60 seconds. 
+		# Check if the cached global variables are still relevant.
 		#
-		# @return [ Boolean ] true if the cache is valid, false otherwise
+		# @return [ Boolean ] true if the cache is valid, false otherwise.
 		#
 		def worker_cache_valid?
 			$__lcms__loaded_at_as_int.to_i > (Time.now.utc.to_i - $__lcms__worker_cache_interval)
