@@ -120,6 +120,16 @@ describe Lacmus::Experiment, "Experiment" do
 			expect(completed_exp.end_time).not_to be_nil
 		end
 
+		it "should destroy experiment" do
+			pending_exp = Lacmus::Experiment.create!(new_experiment_attrs)
+			find_exp = Lacmus::Experiment.find_in_list(pending_exp.id, :pending)
+			expect(find_exp).not_to be_nil
+
+			Lacmus::Experiment.destroy(pending_exp.id)
+			find_exp = Lacmus::Experiment.find_in_list(pending_exp.id, :pending)
+			expect(find_exp).to be_nil
+		end
+
 	end
 
   it "should increment exposure counters for an active exeriment" do

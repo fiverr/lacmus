@@ -23,78 +23,6 @@ module Lacmus
 		# Reprsents the current active experiments (experiment_slots method).
 		$__lcms__active_experiments = nil
 
-		# Create a new experiment and add it to the pending list.
-		#
-		# == Returns
-		# Integer representing the new experiment id.
-		#
-		def create_experiment(name, description, opts = {})
-			experiment_id 		 	= generate_experiment_id
-			experiment_metadada = {
-				:experiment_id => experiment_id,
-				:name 				 => name,
-				:description 	 => description,
-				:status 			 => :pending
-			}.merge!(opts)
-
-			add_experiment_to(:pending, experiment_metadada)
-			experiment_id
-		end
-
-		# Activate an exeprtiment
-		# 
-		# this is done by trying to find an empty experiment slot
-		# and moving the experiment from the pending list to the active
-		# ones list.
-		# 
-		# returns true on success, false on failure
-		def activate_experiment(experiment_id)
-			move_experiment(experiment_id, :pending, :active)
-		end
-
-		# Reactivates a completed exeprtiment
-		def reactivate_experiment(experiment_id)
-			move_experiment(experiment_id, :completed, :active)
-		end
-
-		# move experiment from one list to another
-		#
-		# valid list types - :pending, :active, :completed
-		# returns false if experiment not found
-		def move_experiment(experiment_id, from_list, to_list)
-			experiment = get_experiment_from(from_list, experiment_id)
-			return false if experiment.empty?
-
-			if from_list == :pending && to_list == :active
-				experiment.merge!({:start_time_as_int => Time.now.utc.to_i})
-			end
-
-			if from_list == :completed && to_list == :active
-				experiment.merge!({:end_time_as_int => nil})
-			end
-
-			if from_list == :active && to_list == :completed
-				experiment.merge!({:end_time_as_int => Time.now.utc.to_i})
-			end
-
-			result = add_experiment_to(to_list, experiment)
-			return false unless result
-
-			remove_experiment_from(from_list, experiment_id)
-			true
-		end
-
-		# returns an experimend from one of the lists
-		#
-		# list
-		# accepts the following values: pending, active, completed
-		def get_experiment_from(list, experiment_id)
-			return {} if experiment_id.nil?
-			experiment = Lacmus.fast_storage.zrangebyscore list_key_by_type(list), experiment_id, experiment_id
-			return {} if experiment.nil? || experiment.empty?
-			Marshal.load(experiment.first)
-		end
-
 		def get_experiments(list)
 			experiments_ary = []
 			experiments = Lacmus.fast_storage.zrange list_key_by_type(list), 0, -1
@@ -102,16 +30,6 @@ module Lacmus
 				experiments_ary << Marshal.load(experiment)
 			end
 			experiments_ary
-		end
-
-		# returns an experiment from either of the lists
-		def find_experiment(experiment_id)
-			experiment = {}
-			[:active, :pending, :completed].each do |list|
-				exp = get_experiment_from(list, experiment_id)
-				experiment = exp unless exp.empty?
-			end
-			experiment
 		end
 
 		# restart an active experiment
@@ -129,40 +47,6 @@ module Lacmus
 			update_experiment_slots(slots_hash)
 			reset_worker_cache
 		end
-
-		# adds an experiment with metadata to a given list
-		# 
-		# list
-		# accepts the following values: pending, active, completed
-		def add_experiment_to(list, experiment_metadada)
-			experiment_metadada.merge!({:status => list.to_sym})
-			if list == :active
-				available_slot_id = find_available_slot
-				return false if available_slot_id.nil?
-				place_experiment_in_slot(experiment_metadada[:experiment_id], available_slot_id)
-			end
-			Lacmus.fast_storage.zadd list_key_by_type(list), experiment_metadada[:experiment_id], Marshal.dump(experiment_metadada)
-			true
-		end
-
-		# removes an experiment from the active experiments list
-		# and clears it's slot
-		def deactivate_experiment(experiment_id)
-			remove_experiment_from_slot(experiment_id)
-			move_experiment(experiment_id, :active, :completed)
-		end
-
-		# removes an experiment from a list
-		# 
-		# list
-		# accepts the following values: pending, active, completed
-		def remove_experiment_from(list, experiment_id)
-			Lacmus.fast_storage.zremrangebyscore list_key_by_type(list), experiment_id, experiment_id
-
-			if list.to_s == 'active'
-				remove_experiment_from_slot(experiment_id)
-			end
-		end	
 
 		def deactivate_all_experiments
 			Lacmus.fast_storage.multi do
@@ -268,17 +152,6 @@ module Lacmus
 		#
 		def reset_worker_cache
 			$__lcms__loaded_at_as_int = 0
-		end
-
-		# Permanently deletes an axperiment
-		#
-		# @param [ Symbol, String ] list The list this experiment belongs to,
-		# 	available options: active, pending, completed
-		# @param [ Integer ] experiment_id Id of the experiment.
-		#
-		def destroy_experiment(list, experiment_id)
-			remove_experiment_from(list, experiment_id)
-			Experiment.nuke_experiment(experiment_id)
 		end
 
 		# Returns the redis key for a given list type

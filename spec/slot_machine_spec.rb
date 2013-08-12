@@ -17,9 +17,9 @@ describe Lacmus::SlotMachine, "Management Features" do
   end
 
   def create_and_activate_experiment
-		experiment_id = Lacmus::SlotMachine.create_experiment(@experiment_name, @experiment_description)
-		move_result = Lacmus::SlotMachine.move_experiment(experiment_id, :pending, :active)
-		experiment_id
+  	exp_obj = Lacmus::Experiment.create!(new_experiment_attrs)
+  	exp_obj.activate!
+    exp_obj.id
   end
 
   def reset_active_experiments_cache
@@ -31,8 +31,6 @@ describe Lacmus::SlotMachine, "Management Features" do
 	# ----------------------------------------------------------------
 
 	it "slot machine should start empty with expected number of slots" do 
-		# $__lcms__loaded_at_as_int   = 0
-		# $__lcms__active_experiments = nil
 		expect(Lacmus::SlotMachine.experiment_slot_ids).to eq(SLOT_MACHINE_STARTING_STATE)
 	end
 
@@ -47,22 +45,6 @@ describe Lacmus::SlotMachine, "Management Features" do
 		experiment_id2 = create_and_activate_experiment
 
 		expect(Lacmus::SlotMachine.experiment_slot_ids).to eq([0, experiment_id1])
-	end
-
-	it "should destroy experiments if needed" do
-		Lacmus::SlotMachine.resize_and_reset_slot_array(3)
-		reset_active_experiments_cache
-		experiment_id1 = create_and_activate_experiment
-		experiment_id2 = create_and_activate_experiment
-
-		expect(Lacmus::SlotMachine.experiment_slot_ids[1]).to eq(experiment_id1)
-		Lacmus::SlotMachine.destroy_experiment(:active, experiment_id1)
-
-		reset_active_experiments_cache
-		expect(Lacmus::SlotMachine.experiment_slot_ids[1]).to eq(-1)
-		expect(Lacmus::SlotMachine.get_experiment_from(:active, experiment_id1)).to eq({})
-
-		expect(Lacmus::SlotMachine.get_experiment_from(:active, experiment_id2)).not_to eq({})
 	end
 
 	it "removing an experiment from slots should work well" do 

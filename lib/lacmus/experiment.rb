@@ -65,7 +65,7 @@ module Lacmus
 			@status = list.to_sym
 			save
 
-			Lacmus.fast_storage.zadd self.class.list_key_by_type(list), @id, Marshal.dump(obj_as_hash)
+			Lacmus.fast_storage.zadd self.class.list_key_by_type(list), @id, Marshal.dump(experiment_as_hash)
 			return true
 		end
 
@@ -111,7 +111,7 @@ module Lacmus
 		def save
 			Lacmus.fast_storage.multi do
 				Lacmus.fast_storage.zremrangebyscore self.class.list_key_by_type(@status), @id, @id
-				Lacmus.fast_storage.zadd self.class.list_key_by_type(@status), @id, Marshal.dump(obj_as_hash)
+				Lacmus.fast_storage.zadd self.class.list_key_by_type(@status), @id, Marshal.dump(experiment_as_hash)
 			end
 		end
 
@@ -131,6 +131,17 @@ module Lacmus
 			move_to_list(:completed)
 		end
 
+		# Permanently deletes an experiment, removing the experiment
+		# from it's current list (active/pending/completed).
+		#
+		# @param [ Integer ] experiment_id The id of the experiment.
+		#
+		def self.destroy(experiment_id)
+			experiment = find(experiment_id)
+			experiment.remove_from_list(experiment.status)
+			nuke_experiment(experiment_id)
+		end
+
 		def self.find(experiment_id)
 			experiment = nil
 			[:active, :pending, :completed].each do |list|
@@ -147,7 +158,7 @@ module Lacmus
 			new(experiment_hash)
 		end
 
-		def obj_as_hash
+		def experiment_as_hash
 			attrs_hash = {}
 			instance_variables.each do |var|
 				key = var.to_s.delete('@')
@@ -295,8 +306,7 @@ module Lacmus
 			SlotMachine.experiment_slot_ids.include?(experiment_id.to_i)
 		end
 
-		####################################
-		##### MOVED FROM SLOT MACHINE ######
+		private
 
 		# Generate a new (and unique) experiment id
 		#
@@ -308,23 +318,13 @@ module Lacmus
 			Lacmus.fast_storage.incr "#{LACMUS_PREFIX}-last-experiment-id"
 		end
 
-		def self.list_key_by_type(list)
-			"#{LACMUS_PREFIX}-#{list.to_s}-experiments"
-		end
-
-		####################################
-		##### MOVED FROM SLOT MACHINE ######
-
-		private
-
 		def self.is_control_group?(experiment_id)
 			experiment_id == 0
 		end
 
-		# commenting out because we're moving this method here
-		# def list_key_by_type(list)
-		# 	SlotMachine.list_key_by_type(list)
-		# end
+		def self.list_key_by_type(list)
+			"#{LACMUS_PREFIX}-#{list.to_s}-experiments"
+		end
 	
 		def self.all_from(list)
 			experiments = []
