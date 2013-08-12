@@ -1,7 +1,14 @@
+require 'lacmus'
+require 'lacmus/slot_machine'
 require 'lacmus/settings'
+require 'active_support/core_ext/hash/indifferent_access'
 
 module Lacmus
 	class Experiment
+
+		# Raised when trying to initialize an experiment object
+		# with somethong other than a Hash.
+		class InvalidInitValue < StandardError; end
 
 		# Accessors
 		attr_accessor :id
@@ -18,65 +25,158 @@ module Lacmus
 		attr_reader :control_analytics
 		attr_reader :experiment_analytics
 
-		def initialize(value)
-			if value.is_a?(Hash)
-				experiment = value
-				id = experiment[:experiment_id]
-			else
-				experiment = SlotMachine.find_experiment(value.to_i)
-				id = value
-			end
-			set_instance_variables(id, experiment)
-		end
+		def initialize(options = {})
+			raise InvalidInitValue unless options.is_a?(Hash)
+			options = ActiveSupport::HashWithIndifferentAccess.new(options)
 
-		def set_instance_variables(id, experiment)
-			@id 									= id
-			@status 							= experiment[:status]
-			@name 								= experiment[:name]
-			@description 					= experiment[:description]
-			@screenshot_url 			= experiment[:screenshot_url]
-			@start_time 					= Time.at(experiment[:start_time_as_int]) if experiment[:start_time_as_int]
-			@end_time 						= Time.at(experiment[:end_time_as_int]) if experiment[:end_time_as_int]
-			@control_kpis 				= load_experiment_kpis(true) || {}
-			@experiment_kpis 			= load_experiment_kpis || {}
+			@id 									= options[:id]
+			@status 							= options[:status]
+			@name 								= options[:name]
+			@description 					= options[:description]
+			@screenshot_url 			= options[:screenshot_url]
+			@start_time 					= Time.at(options[:start_time_as_int])  if options[:start_time_as_int]
+			@end_time 						= Time.at(options[:end_time_as_int]) 	  if options[:end_time_as_int]
+			@control_kpis 				= load_experiment_kpis(true) 			|| {}
+			@experiment_kpis 			= load_experiment_kpis 						|| {}
 			@control_analytics 		= load_experiment_analytics(true) || {}
-			@experiment_analytics = load_experiment_analytics || {}
-			@errors = []
+			@experiment_analytics = load_experiment_analytics 			|| {}
+			@errors 							= []
 		end
 
-		def reload
-			updated_experiment = SlotMachine.find_experiment(id)
-			set_instance_variables(id, updated_experiment)
+		def self.create!(options = {})
+			attrs = {
+				id: 		generate_experiment_id,
+				status: :pending
+			}.merge(options)
+
+			exp_obj = new(attrs)
+			exp_obj.save
+			exp_obj.add_to_list(:pending)
+			exp_obj
+		end
+
+		def add_to_list(list)
+			if list.to_sym == :active
+				available_slot_id = SlotMachine.find_available_slot
+				return false if available_slot_id.nil?
+				SlotMachine.place_experiment_in_slot(@id, available_slot_id)
+			end
+
+			@status = list.to_sym
+			save
+
+			Lacmus.fast_storage.zadd self.class.list_key_by_type(list), @id, Marshal.dump(obj_as_hash)
+			return true
+		end
+
+		# Removes an experiment from the given list.
+		#
+		# @param [ Symbol, String ] list The list to remove from.
+		# 	Available options: :pending, :active, :completed
+		#
+		def remove_from_list(list)
+			if list.to_sym == :active
+				SlotMachine.remove_experiment_from_slot(@id)
+			end
+			Lacmus.fast_storage.zremrangebyscore self.class.list_key_by_type(list), @id, @id
+		end	
+
+		# Move experiment from one list to another.
+		# Valid list types - :pending, :active, :completed
+		#
+		# @return [ Boolean ] true on success, false if experiment not found
+		#
+		def move_to_list(from_list, to_list)
+			if from_list == :pending && to_list == :active
+				@start_time_as_int = Time.now.utc.to_i
+			end
+
+			if from_list == :completed && to_list == :active
+				@end_time_as_int = nil
+			end
+
+			if from_list == :active && to_list == :completed
+				@end_time_as_int = Time.now.utc.to_i
+			end
+
+			result = add_to_list(to_list)
+			return false unless result
+
+			remove_from_list(from_list)
+			return true
+		end
+
+		def save
+			Lacmus.fast_storage.multi do
+				Lacmus.fast_storage.zremrangebyscore self.class.list_key_by_type(@status), @id, @id
+				Lacmus.fast_storage.zadd self.class.list_key_by_type(@status), @id, Marshal.dump(obj_as_hash)
+			end
+		end
+
+		# Activate an exeprtiment.
+		# 
+		# @return [ Boolean ] true on success, false on failure.
+		#
+		def activate!
+			move_to_list(:pending, :active)
+		end
+
+		# Removes an experiment from the active experiments list
+		# and clears it's slot.
+		#
+		def deactivate!
+			SlotMachine.remove_experiment_from_slot(@id)
+			move_to_list(:active, :completed)
+		end
+
+		def self.find(experiment_id)
+			experiment = nil
+			[:active, :pending, :completed].each do |list|
+				break if experiment
+				experiment = find_in_list(experiment_id, list)
+			end
+			experiment
+		end
+
+		def self.find_in_list(experiment_id, list)
+			experiment = Lacmus.fast_storage.zrangebyscore list_key_by_type(list), experiment_id, experiment_id
+			return nil if experiment.nil? || experiment.empty?
+			experiment_hash = Marshal.load(experiment.first)
+			new(experiment_hash)
+		end
+
+		def obj_as_hash
+			attrs_hash = {}
+			instance_variables.each do |var|
+				key = var.to_s.delete('@')
+				attrs_hash[key] = instance_variable_get(var)
+			end
+			attrs_hash
 		end
 
 		def nuke
 			self.class.nuke_experiment(@id)
 		end
 
-		def save
-			original_experiment = SlotMachine.get_experiment_from(@status, @id)
-			metadata = {
-				:name => @name, 
-				:description => @description,
-				:screenshot_url => @screenshot_url,
-				:start_time_as_int => @start_time.is_a?(Time) ? @start_time.utc.to_i : @start_time,
-				:end_time_as_int => @end_time.is_a?(Time) ? @end_time.utc.to_i : @end_time
-			}
-
-			original_experiment.merge!(metadata)
-			id = original_experiment[:experiment_id]
-			
-			Lacmus.fast_storage.multi do
-				Lacmus.fast_storage.zremrangebyscore list_key_by_type(original_experiment[:status]), id, id
-				Lacmus.fast_storage.zadd list_key_by_type(original_experiment[:status]), id, Marshal.dump(original_experiment)
-			end
-		end
-
 		def available_kpis
 			@control_kpis.merge(@experiment_kpis).keys
 		end
 
+		def control?
+			@id == 0
+		end
+
+		def active?
+			![0, -1].include?(@id)
+		end
+
+		def inactive?
+			@id == -1
+		end
+
 		def load_experiment_kpis(is_control = false)
+			return {} if control? || inactive?
+
 			kpis_hash = {}
 			kpis = Lacmus.fast_storage.zrange(self.class.kpi_key(@id, is_control), 0, -1, :with_scores => true)
 			kpis.each do |kpi_array|
@@ -86,6 +186,8 @@ module Lacmus
 		end
 
 		def load_experiment_analytics(is_control = false)
+			return {} if control? || inactive?
+
 			{exposures: (Lacmus.fast_storage.get self.class.exposure_key(@id, is_control))}
 		end
 
@@ -191,15 +293,36 @@ module Lacmus
 			SlotMachine.experiment_slot_ids.include?(experiment_id.to_i)
 		end
 
+		####################################
+		##### MOVED FROM SLOT MACHINE ######
+
+		# Generate a new (and unique) experiment id
+		#
+		# @example SlotMachine.generate_experiment_id # => 3
+		#
+		# @return [ Integer ] representing the new experiment id
+		#
+		def self.generate_experiment_id
+			Lacmus.fast_storage.incr "#{LACMUS_PREFIX}-last-experiment-id"
+		end
+
+		def self.list_key_by_type(list)
+			"#{LACMUS_PREFIX}-#{list.to_s}-experiments"
+		end
+
+		####################################
+		##### MOVED FROM SLOT MACHINE ######
+
 		private
 
 		def self.is_control_group?(experiment_id)
 			experiment_id == 0
 		end
 
-		def list_key_by_type(list)
-			SlotMachine.list_key_by_type(list)
-		end
+		# commenting out because we're moving this method here
+		# def list_key_by_type(list)
+		# 	SlotMachine.list_key_by_type(list)
+		# end
 	
 		def self.all_from(list)
 			experiments = []

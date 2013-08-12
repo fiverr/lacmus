@@ -1,5 +1,5 @@
-require 'lacmus/slot_machine'
 require 'lacmus/experiment'
+require 'lacmus/slot_machine'
 
 module Lacmus
 	module Lab

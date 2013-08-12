@@ -19,10 +19,18 @@ describe Lacmus::Experiment, "Experiment" do
     reset_active_experiments_cache
   end
 
+  def new_experiment_attrs
+  	attrs = {
+  		:name 					=> @experiment_name,
+  		:description 		=> @experiment_description,
+  		:screenshot_url => @experiment_screenshot_url
+  	}
+  end
+
   def create_and_activate_experiment
-    experiment_id = Lacmus::SlotMachine.create_experiment(@experiment_name, @experiment_description, {:screenshot_url => @experiment_screenshot_url})
-    move_result = Lacmus::SlotMachine.move_experiment(experiment_id, :pending, :active)
-    experiment_id
+  	exp_obj = Lacmus::Experiment.create!(new_experiment_attrs)
+  	exp_obj.activate!
+    exp_obj.id
   end
 
   def reset_active_experiments_cache
@@ -52,13 +60,13 @@ describe Lacmus::Experiment, "Experiment" do
   end
 
   def get_exposures_for_experiment(experiment_id, is_control = false)
-    obj = Lacmus::Experiment.new(experiment_id)
+    obj = Lacmus::Experiment.find(experiment_id)
     return obj.control_analytics[:exposures].to_i if is_control
     obj.experiment_analytics[:exposures].to_i
   end
 
   def get_kpis_for_experiment(experiment_id, is_control = false)
-    experiment = Lacmus::Experiment.new(experiment_id)
+    experiment = Lacmus::Experiment.find(experiment_id)
     is_control ? experiment.control_kpis : experiment.experiment_kpis
   end
 
@@ -83,28 +91,30 @@ describe Lacmus::Experiment, "Experiment" do
     expect(get_exposures_for_experiment(experiment_id)).to eq(1)
   end
 
-  it "should not increment exposure counters for a pending or completed exeriment" do
-    experiment_id = Lacmus::SlotMachine.create_experiment(@experiment_name, @experiment_description)
-    simple_experiment(experiment_id, "control", "experiment")
-    pending_experiment_exposures = get_exposures_for_experiment(experiment_id) + get_exposures_for_experiment(experiment_id, true)
+  it "should not increment exposure counters for a pending or completed experiment" do
+  	exp_obj = Lacmus::Experiment.create!(new_experiment_attrs)
+  	exp_id  = exp_obj.id
+
+    simple_experiment(exp_id, "control", "experiment")
+    pending_experiment_exposures = get_exposures_for_experiment(exp_id) + get_exposures_for_experiment(exp_id, true)
     expect(pending_experiment_exposures).to eq(0)
 
     reset_instance_variables
-    Lacmus::SlotMachine.activate_experiment(experiment_id)
-    simple_experiment(experiment_id, "control", "experiment")
-    active_experiment_exposures = get_exposures_for_experiment(experiment_id) + get_exposures_for_experiment(experiment_id, true)
+    exp_obj.activate!
+    simple_experiment(exp_id, "control", "experiment")
+    active_experiment_exposures = get_exposures_for_experiment(exp_id) + get_exposures_for_experiment(exp_id, true)
     expect(active_experiment_exposures).to eq(1)
 
     reset_instance_variables
-    Lacmus::SlotMachine.deactivate_experiment(experiment_id)
-    simple_experiment(experiment_id, "control", "experiment")
-    completed_experiment_exposures = get_exposures_for_experiment(experiment_id) + get_exposures_for_experiment(experiment_id, true)
+    exp_obj.deactivate!
+    simple_experiment(exp_id, "control", "experiment")
+    completed_experiment_exposures = get_exposures_for_experiment(exp_id) + get_exposures_for_experiment(exp_id, true)
     expect(completed_experiment_exposures).to eq(1)
   end
 
   it "should allow to update an experiment" do
     experiment_id = create_and_activate_experiment
-    experiment = Lacmus::Experiment.new(experiment_id)
+    experiment = Lacmus::Experiment.find(experiment_id)
     expect(experiment.name).to eq(@experiment_name)
     expect(experiment.description).to eq(@experiment_description)
     expect(experiment.screenshot_url).to eq(@experiment_screenshot_url)
@@ -114,7 +124,7 @@ describe Lacmus::Experiment, "Experiment" do
     experiment.screenshot_url = "new screenshot url"
     experiment.save
 
-    loaded_experiment = Lacmus::Experiment.new(experiment_id)
+    loaded_experiment = Lacmus::Experiment.find(experiment_id)
     expect(loaded_experiment.name).to eq("new name")
     expect(loaded_experiment.description).to eq("new description")
     expect(loaded_experiment.screenshot_url).to eq("new screenshot url")
@@ -141,7 +151,7 @@ describe Lacmus::Experiment, "Experiment" do
       mark_kpi!('ftb')
     end
 
-    conversion = Lacmus::Experiment.new(experiment_id).experiment_conversion('ftb')
+    conversion = Lacmus::Experiment.find(experiment_id).experiment_conversion('ftb')
     expect(conversion).to eq(20)
   end
 
@@ -168,7 +178,8 @@ describe Lacmus::Experiment, "Experiment" do
   it "should only mark KPI if the experiment is active" do
   	experiment_id1 = create_and_activate_experiment
   	simulate_unique_visitor_exposure(experiment_id1)
-  	Lacmus::SlotMachine.deactivate_experiment(experiment_id1)
+  	exp_obj = Lacmus::Experiment.find(experiment_id1)
+  	exp_obj.deactivate!
 
   	mark_kpi!('ftb')
   	expect(get_kpis_for_experiment(experiment_id1)['ftb'].to_i).to eq(0)
@@ -181,7 +192,7 @@ describe Lacmus::Experiment, "Experiment" do
 		# sleeping because the test runs too fast without it
 		# and it'll not affect the experiment's start_time
 		sleep 1
-  	Lacmus::Experiment.new(experiment_id1).restart!
+  	Lacmus::Experiment.find(experiment_id1).restart!
   	reset_active_experiments_cache
   	mark_kpi!('ftb')
   	expect(get_kpis_for_experiment(experiment_id1)['ftb'].to_i).to eq(0)
@@ -194,7 +205,7 @@ describe Lacmus::Experiment, "Experiment" do
 		# sleeping because the test runs too fast without it
 		# and it'll not affect the experiment's start_time
 		sleep 1
-  	Lacmus::Experiment.new(experiment_id1).restart!
+  	Lacmus::Experiment.find(experiment_id1).restart!
   	reset_active_experiments_cache
   	mark_kpi!('ftb')
   	expect(get_kpis_for_experiment(experiment_id1)['ftb'].to_i).to eq(0)
@@ -211,7 +222,7 @@ describe Lacmus::Experiment, "Experiment" do
 		# sleeping because the test runs too fast without it
 		# and it'll not affect the experiment's start_time
 		sleep 1
-  	Lacmus::Experiment.new(experiment_id).restart!
+  	Lacmus::Experiment.find(experiment_id).restart!
 
   	simple_experiment(experiment_id, "control", "experiment")
   	cookie_value_after_restart = experiment_cookie_value
@@ -232,7 +243,7 @@ describe Lacmus::Experiment, "Experiment" do
 		# sleeping because the test runs too fast without it
 		# and it'll not affect the experiment's start_time
 		sleep 1
-  	Lacmus::Experiment.new(experiment_id).restart!
+  	Lacmus::Experiment.find(experiment_id).restart!
 
   	simple_experiment(experiment_id, "control", "experiment")
   	cookie_value_after_restart = experiment_cookie_value

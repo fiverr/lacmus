@@ -1,3 +1,4 @@
+require 'lacmus/experiment'
 require 'lacmus/settings'
 require 'redis'
 
@@ -113,10 +114,6 @@ module Lacmus
 			experiment
 		end
 
-		def get_control_group
-			get_experiment_from(:active, 0)
-		end
-
 		# restart an active experiment
 		# return if the experiment isn't active.
 		def restart_experiment(experiment_id)
@@ -124,7 +121,7 @@ module Lacmus
 			return if slot.nil?
 
 			slots_hash = experiment_slots
-			ex = Experiment.new(experiment_id)
+			ex = Experiment.find(experiment_id)
 			ex.nuke
 			slots_hash[slot][:start_time_as_int] = Time.now.utc.to_i
 			ex.start_time = Time.now
@@ -218,7 +215,7 @@ module Lacmus
 			end
 
 			get_experiments(:active).each do |experiment_hash|
-				exp = Experiment.new(experiment_hash[:experiment_id])
+				exp = Experiment.find(experiment_hash[:experiment_id])
 				exp.restart!
 				exp.reload
 				last_reset_hash.merge!({exp.id => exp.start_time.to_i})
@@ -454,16 +451,6 @@ module Lacmus
 		#
 		def slot_usage_key
 			"#{LACMUS_PREFIX}-slot-usage"
-		end
-
-		# Generate a new (and unique) experiment id
-		#
-		# @example SlotMachine.generate_experiment_id # => 3
-		#
-		# @return [ Integer ] representing the new experiment id
-		#
-		def generate_experiment_id
-			Lacmus.fast_storage.incr "#{LACMUS_PREFIX}-last-experiment-id"
 		end
 
 	end # of SlotMachine

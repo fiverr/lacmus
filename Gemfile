@@ -1,4 +1,5 @@
 source 'https://rubygems.org'
+gem 'activesupport'
 
 # Specify your gem's dependencies in lacmus.gemspec
 group :test do
