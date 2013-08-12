@@ -48,31 +48,6 @@ module Lacmus
 			updated_experiment = SlotMachine.find_experiment(id)
 			set_instance_variables(id, updated_experiment)
 		end
-	
-		def available_kpis
-			@control_kpis.merge(@experiment_kpis).keys
-		end
-
-		def load_experiment_kpis(is_control = false)
-			kpis_hash = {}
-			kpis = Lacmus.fast_storage.zrange(self.class.kpi_key(@id, is_control), 0, -1, :with_scores => true)
-			kpis.each do |kpi_array|
-				kpis_hash[kpi_array[0]] = kpi_array[1]
-			end
-			kpis_hash	
-		end
-
-		def load_experiment_analytics(is_control = false)
-			{exposures: (Lacmus.fast_storage.get self.class.exposure_key(@id, is_control))}
-		end
-
-		def safe_name(include_id = false)
-			safe_name = name.gsub(' ', '_').downcase
-			if include_id
-				safe_name += "_#{id}"
-			end
-			safe_name
-		end
 
 		def nuke
 			self.class.nuke_experiment(@id)
@@ -95,6 +70,23 @@ module Lacmus
 				Lacmus.fast_storage.zremrangebyscore list_key_by_type(original_experiment[:status]), id, id
 				Lacmus.fast_storage.zadd list_key_by_type(original_experiment[:status]), id, Marshal.dump(original_experiment)
 			end
+		end
+
+		def available_kpis
+			@control_kpis.merge(@experiment_kpis).keys
+		end
+
+		def load_experiment_kpis(is_control = false)
+			kpis_hash = {}
+			kpis = Lacmus.fast_storage.zrange(self.class.kpi_key(@id, is_control), 0, -1, :with_scores => true)
+			kpis.each do |kpi_array|
+				kpis_hash[kpi_array[0]] = kpi_array[1]
+			end
+			kpis_hash	
+		end
+
+		def load_experiment_analytics(is_control = false)
+			{exposures: (Lacmus.fast_storage.get self.class.exposure_key(@id, is_control))}
 		end
 
 		def self.nuke_experiment(experiment_id)

@@ -29,8 +29,12 @@ module Lacmus
 		#
 		def create_experiment(name, description, opts = {})
 			experiment_id 		 	= generate_experiment_id
-			experiment_metadada = {:experiment_id => experiment_id, :name => name, :description => description, :status => :pending}
-			experiment_metadada.merge!(opts)
+			experiment_metadada = {
+				:experiment_id => experiment_id,
+				:name 				 => name,
+				:description 	 => description,
+				:status 			 => :pending
+			}.merge!(opts)
 
 			add_experiment_to(:pending, experiment_metadada)
 			experiment_id
@@ -205,7 +209,7 @@ module Lacmus
 			if new_size <= slot_array.count
 				last_used_index = find_last_used_slot(slot_array)
 				# return false if there is an occupied slot
-				# located after the size requested
+				# located after the size requested.
 				return false if last_used_index > new_size
 				slot_array = slot_array[0...new_size]
 			else
