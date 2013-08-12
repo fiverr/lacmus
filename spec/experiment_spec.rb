@@ -80,6 +80,48 @@ describe Lacmus::Experiment, "Experiment" do
 		$__lcms__loaded_at_as_int = 0
 	end
 
+	describe "basic experiment functionality" do
+
+		it "should create new experiment as pending with the given values" do
+			exp_obj = Lacmus::Experiment.create!(new_experiment_attrs)
+			expect(exp_obj.id).to be > 0
+			expect(exp_obj.status).to eq(:pending)
+			expect(exp_obj.name).to eq(@experiment_name)
+			expect(exp_obj.description).to eq(@experiment_description)
+		end
+
+		it "should remove experiment from list" do 
+			exp_obj = Lacmus::Experiment.create!(new_experiment_attrs)
+			exp_obj.remove_from_list(:pending)
+
+			experiment = Lacmus::Experiment.find_in_list(exp_obj.id, :pending)
+			expect(experiment).to be_nil
+		end
+
+		it "should move experiment from pending to active" do 
+			exp_obj = Lacmus::Experiment.create!(new_experiment_attrs)
+			move_result = exp_obj.move_to_list(:active)
+			expect(move_result).to be_true
+
+			experiment_pending = Lacmus::Experiment.find_in_list(exp_obj.id, :pending)
+			experiment_active = Lacmus::Experiment.find_in_list(exp_obj.id, :active)
+
+			expect(experiment_pending).to be_nil
+			expect(experiment_active.name).to eq(@experiment_name)
+		end
+
+		it "should set experiment end time after moving from active to completed" do 
+			pending_exp = Lacmus::Experiment.create!(new_experiment_attrs)
+			expect(pending_exp.end_time).to be_nil
+			pending_exp.move_to_list(:active)
+			pending_exp.move_to_list(:completed)
+
+			completed_exp = Lacmus::Experiment.find_in_list(pending_exp.id, :completed)
+			expect(completed_exp.end_time).not_to be_nil
+		end
+
+	end
+
   it "should increment exposure counters for an active exeriment" do
     experiment_id = create_and_activate_experiment
     all_exposures_1 = get_exposures_for_experiment(experiment_id) + get_exposures_for_experiment(experiment_id, true)

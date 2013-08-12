@@ -86,23 +86,25 @@ module Lacmus
 		#
 		# @return [ Boolean ] true on success, false if experiment not found
 		#
-		def move_to_list(from_list, to_list)
-			if from_list == :pending && to_list == :active
+		def move_to_list(list)
+			current_list = @status
+
+			if current_list == :pending && list == :active
 				@start_time_as_int = Time.now.utc.to_i
 			end
 
-			if from_list == :completed && to_list == :active
+			if current_list == :completed && list == :active
 				@end_time_as_int = nil
 			end
 
-			if from_list == :active && to_list == :completed
+			if current_list == :active && list == :completed
 				@end_time_as_int = Time.now.utc.to_i
 			end
 
-			result = add_to_list(to_list)
+			result = add_to_list(list)
 			return false unless result
 
-			remove_from_list(from_list)
+			remove_from_list(current_list)
 			return true
 		end
 
@@ -118,7 +120,7 @@ module Lacmus
 		# @return [ Boolean ] true on success, false on failure.
 		#
 		def activate!
-			move_to_list(:pending, :active)
+			move_to_list(:active)
 		end
 
 		# Removes an experiment from the active experiments list
@@ -126,7 +128,7 @@ module Lacmus
 		#
 		def deactivate!
 			SlotMachine.remove_experiment_from_slot(@id)
-			move_to_list(:active, :completed)
+			move_to_list(:completed)
 		end
 
 		def self.find(experiment_id)
