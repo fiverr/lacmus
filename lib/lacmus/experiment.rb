@@ -395,12 +395,13 @@ module Lacmus
 
 	end # of Experiment
 
-	class ExperimentHistoryItem < Experiment
+	class ExperimentHistoryItem
 
-		def initialize(user_id, experiment_id, exposed_at_as_int)
+		def initialize(user_id, experiment_id, exposed_at_as_int, is_control)
 			@user_id 			 = user_id.to_i
 			@exposed_at 	 = Time.at(exposed_at_as_int)
 			@experiment_id = experiment_id.to_i
+			@control 			 = is_control
 			@experiment 	 = Experiment.find(@experiment_id)
 		end
 
