@@ -36,10 +36,10 @@ module Lacmus
 			@screenshot_url 			= options[:screenshot_url]
 			@start_time 					= options[:start_time]
 			@end_time 						= options[:end_time]
-			@control_kpis 				= load_experiment_kpis(true) 			|| {}
-			@experiment_kpis 			= load_experiment_kpis 						|| {}
-			@control_analytics 		= load_experiment_analytics(true) || {}
-			@experiment_analytics = load_experiment_analytics 			|| {}
+			@control_kpis 				= load_experiment_kpis(true)
+			@experiment_kpis 			= load_experiment_kpis
+			@control_analytics 		= load_experiment_analytics(true)
+			@experiment_analytics = load_experiment_analytics
 			@errors 							= []
 		end
 
@@ -201,13 +201,16 @@ module Lacmus
 			kpis.each do |kpi_array|
 				kpis_hash[kpi_array[0]] = kpi_array[1]
 			end
-			kpis_hash	
+			ActiveSupport::HashWithIndifferentAccess.new(kpis_hash)
 		end
 
 		def load_experiment_analytics(is_control = false)
 			return {} if self.class.special_experiment_id?(@id)
 
-			{exposures: (Lacmus.fast_storage.get self.class.exposure_key(@id, is_control))}
+			analytics_hash = {
+				exposures: Lacmus.fast_storage.get(self.class.exposure_key(@id, is_control))
+			}
+			ActiveSupport::HashWithIndifferentAccess.new(analytics_hash)
 		end
 
 		def self.nuke_experiment(experiment_id)
@@ -264,14 +267,14 @@ module Lacmus
 		end
 
 		def control_conversion(kpi)
-			return 0 if !control_analytics || control_analytics[:exposures].to_i == 0
-			return 0 if !control_kpis || control_kpis[kpi].to_i == 0
+			return 0 if control_analytics[:exposures].to_i == 0
+			return 0 if control_kpis[kpi].to_i == 0
 			(control_kpis[kpi].to_f / control_analytics[:exposures].to_f) * 100
 		end
 
 		def experiment_conversion(kpi)
-			return 0 if !experiment_analytics || experiment_analytics[:exposures].to_i == 0
-			return 0 if !experiment_kpis || experiment_kpis[kpi].to_i == 0
+			return 0 if experiment_analytics[:exposures].to_i == 0
+			return 0 if experiment_kpis[kpi].to_i == 0
 			(experiment_kpis[kpi].to_f / experiment_analytics[:exposures].to_f) * 100
 		end
 

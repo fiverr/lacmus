@@ -5,29 +5,11 @@ describe Lacmus::SlotMachine, "Management Features" do
 
 	SLOT_MACHINE_STARTING_STATE = [0,-1]
 
-  before(:all) do
-    @experiment_name = "experimentum"
-    @experiment_description = "dekaprius dela karma"
-  end
-  
   before(:each) do
     Lacmus::Experiment.nuke_all_experiments
     Lacmus::SlotMachine.reset_slots_to_defaults
     Lacmus::SlotMachine.reset_worker_cache
   end
-
-  # ----------------------------------------------------------------
-  # HELPER METHODS
-  # ----------------------------------------------------------------
-
-  def create_and_activate_experiment
-  	attrs = {name: @experiment_name, description: @experiment_description}
-  	exp_obj = Lacmus::Experiment.create!(attrs)
-  	exp_obj.activate!
-    exp_obj.id
-  end
-
-	# ----------------------------------------------------------------
 
 	describe "Basic functionality" do
 
@@ -36,20 +18,20 @@ describe Lacmus::SlotMachine, "Management Features" do
 		end
 
 		it "place experiment in slot should fill the slots with experiments" do 
-			experiment_id = create_and_activate_experiment
+			experiment_id = create_and_activate_experiment.id
 			expect(Lacmus::SlotMachine.experiment_slot_ids).not_to eq(SLOT_MACHINE_STARTING_STATE)
 			expect(Lacmus::SlotMachine.experiment_slot_ids).to eq([0, experiment_id])
 		end
 
 		it "should not override slot when taken" do
-			experiment_id1 = create_and_activate_experiment
-			experiment_id2 = create_and_activate_experiment
+			experiment_id1 = create_and_activate_experiment.id
+			experiment_id2 = create_and_activate_experiment.id
 
 			expect(Lacmus::SlotMachine.experiment_slot_ids).to eq([0, experiment_id1])
 		end
 
 		it "should remove  an experiment from slot" do 
-			experiment_id1 = create_and_activate_experiment
+			experiment_id1 = create_and_activate_experiment.id
 			expect(Lacmus::SlotMachine.experiment_slot_ids).to eq([0, experiment_id1])
 
 			Lacmus::SlotMachine.remove_experiment_from_slot(experiment_id1)
@@ -70,19 +52,19 @@ describe Lacmus::SlotMachine, "Management Features" do
 		end
 
 		it "should allow resizing of slot the array, leaving the exising items intact" do 
-			experiment_id1 = create_and_activate_experiment
+			experiment_id1 = create_and_activate_experiment.id
 			expect(Lacmus::SlotMachine.experiment_slot_ids).to eq([0, experiment_id1])
 
 			Lacmus::SlotMachine.resize_and_reset_slot_array(5)
 			Lacmus::SlotMachine.reset_worker_cache
 			expect(Lacmus::SlotMachine.experiment_slot_ids).to eq([0, experiment_id1, -1, -1, -1])
 
-			experiment_id2 = create_and_activate_experiment
+			experiment_id2 = create_and_activate_experiment.id
 			expect(Lacmus::SlotMachine.experiment_slot_ids).to eq([0, experiment_id1, experiment_id2, -1, -1])
 		end
 
 		it "should update the experiment start time after resize" do
-			experiment_id1 = create_and_activate_experiment
+			experiment_id1 = create_and_activate_experiment.id
 			start_time = Lacmus::SlotMachine.last_experiment_reset(experiment_id1)
 			expect(start_time).to be > 0
 
@@ -100,7 +82,7 @@ describe Lacmus::SlotMachine, "Management Features" do
 	describe "Restart functionality" do
 
 		it "clearing the slot machine should bring it back to defaults" do 
-			experiment_id1 = create_and_activate_experiment
+			experiment_id1 = create_and_activate_experiment.id
 			expect(Lacmus::SlotMachine.experiment_slot_ids).to eq([0, experiment_id1])
 
 			Lacmus::SlotMachine.clear_experiment_slot_ids
@@ -116,8 +98,8 @@ describe Lacmus::SlotMachine, "Management Features" do
 		it "should check that resetting an experiment changes its start, and does not affect other experiments" do
 			Lacmus::SlotMachine.resize_and_reset_slot_array(3)
 			Lacmus::SlotMachine.reset_worker_cache
-			experiment_id1 = create_and_activate_experiment
-			experiment_id2 = create_and_activate_experiment
+			experiment_id1 = create_and_activate_experiment.id
+			experiment_id2 = create_and_activate_experiment.id
 			creation_time1 = Time.at(Lacmus::SlotMachine.experiment_slots[1][:start_time_as_int].to_i)
 			creation_time2 = Time.at(Lacmus::SlotMachine.experiment_slots[2][:start_time_as_int].to_i)
 			expect(creation_time1).to be > (Time.now - 10)
@@ -142,21 +124,21 @@ describe Lacmus::SlotMachine, "Management Features" do
 		it "slot machine should return the first available slot, even if in the middle of the stack" do 
 			Lacmus::SlotMachine.resize_and_reset_slot_array(5)
 			Lacmus::SlotMachine.reset_worker_cache
-			experiment_id1 = create_and_activate_experiment
-			experiment_id2 = create_and_activate_experiment
-			experiment_id3 = create_and_activate_experiment
+			experiment_id1 = create_and_activate_experiment.id
+			experiment_id2 = create_and_activate_experiment.id
+			experiment_id3 = create_and_activate_experiment.id
 
 			Lacmus::SlotMachine.remove_experiment_from_slot(experiment_id2)
 			expect(Lacmus::SlotMachine.experiment_slot_ids).to eq([0, experiment_id1, -1, experiment_id3, -1])
-			experiment_id4 = create_and_activate_experiment
+			experiment_id4 = create_and_activate_experiment.id
 			expect(Lacmus::SlotMachine.experiment_slot_ids).to eq([0, experiment_id1, experiment_id4, experiment_id3, -1])
 		end
 
 		it "full slot machine should not return an available slot" do 		
-			experiment_id1 = create_and_activate_experiment
+			experiment_id1 = create_and_activate_experiment.id
 			expect(Lacmus::SlotMachine.find_available_slot).to be_nil
 		end
 
 	end # of describe "Available slots functionality"
 
-end
+end # of describe Lacmus::SlotMachine, "Management Features"
