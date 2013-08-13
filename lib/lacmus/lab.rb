@@ -17,7 +17,6 @@ module Lacmus
 	# 		include Lacmus::Lab
 	# 	end
 	#
-	#
 	# Before adding an experiment, it's best to add a few mark_kpi! events
 	# around your application. Use mark_kpi for any event that you would
 	# like to measure, and compare it's performence.
@@ -31,7 +30,6 @@ module Lacmus
 	# 			end
 	# 		end
 	# 	end
-	#
 	#
 	# There are 2 ways to run an experiment:
 	# (1) Render text:
@@ -180,6 +178,13 @@ module Lacmus
 				control_version
 			end
 
+			# Mark the given kpi for all the experiments this user was exposed to.
+			# User can mark multiple times the same kpi for a given experiment.
+			#
+			# @param [ String, Symbol ] kpi The new of the kpi
+			#
+			# @example mark_kpi!('new_user')
+			#
 			def mark_kpi!(kpi)
 				Experiment.mark_kpi!(kpi, exposed_experiments_list_for_mark_kpi, user_belongs_to_control_group?)
 			rescue Exception => e
@@ -188,12 +193,20 @@ module Lacmus
 											"Exception backtrace: #{e.backtrace[0..10]}"
 			end
 
-			# this method generates a cache key to include in caches of the experiment host pages
-			# it should be used to prevent a situation where experiments are exposed the same for all users
-			# due to aciton caching.
+			# Used to prevent a situation where experiments are not exposed properly
+			# due to caching mechanism from the hosting application.
 			#
-			# returns 0 for empty experiments and control group
-			# returns experiment id for users who are selected for an active experiment
+			# @example Action caching in Rails
+			# 	class UsersController < ApplicationController
+			# 		caches_action :show, :cache_path => Proc.new { |c| c.show_cache_key }
+			#
+			# 		def show_cache_key
+			# 			"users-show-#{lacmus_cache_key}"
+			# 		end
+			# 	end
+			#
+			# @return [ String ] The cache key based on which group the user belongs to.
+			#
 			def lacmus_cache_key
 				return '0' unless @uid_hash || user_id_cookie
 
