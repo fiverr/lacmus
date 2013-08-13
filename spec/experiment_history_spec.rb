@@ -3,43 +3,9 @@ require 'lacmus'
 
 describe Lacmus::Experiment, "Experiment" do
 
-  before(:all) do
-  
-    
-    @experiment_name = "experimentum"
-    @experiment_description = "dekaprius dela karma"
-
-    Lacmus::Lab.instance_eval do
-      @cookies = {}
-
-      def self.[](index)
-        @cookies[index]
-      end
-
-      def self.[]=(index,value)
-        @cookies[index]=value
-      end
-
-      def self.cookies
-        @cookies
-      end
-
-      def self.clear_cookies
-        @cookies = {}
-      end
-    end
-
-  end
-  
   before(:each) do
-    Lacmus.restart_temp_user_ids
+    Lacmus.restart_user_ids_counter
     Lacmus::Experiment.nuke_all_experiments
-  end
-
-  def create_and_activate_experiment
-    experiment_id = Lacmus::SlotMachine.create_experiment(@experiment_name, @experiment_description)
-    move_result = Lacmus::SlotMachine.move_experiment(experiment_id, :pending, :active)
-    experiment_id
   end
 
   # it "should log experiment" do

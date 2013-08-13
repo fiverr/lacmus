@@ -20,20 +20,24 @@ module Lacmus
 		@@fast_engine ||= Redis.new(@@settings['fast_storage'])
 	end
 
-	# generate a unique temporary user id to use for every user
-	# this allows us to suppot non-logged in users 
-	# the counter will reset itself when it reaches 10M
-	def generate_tmp_user_id
-		index = fast_storage.incr tmp_user_id_key
-		fast_storage.set tmp_user_id_key, 1 if index > 100000000
-		index
+	# Generate a new unique user id for the given user.
+	# The counter will reset itself when it reaches 10M.
+	#
+	# @return [ Integer ] The new user id
+	#
+	def generate_user_id
+		new_user_id = fast_storage.incr user_id_key
+		if new_user_id > 100000000
+			fast_storage.set(user_id_key, 1)
+		end
+		new_user_id
 	end
 
-	def restart_temp_user_ids
-		fast_storage.del tmp_user_id_key
+	def restart_user_ids_counter
+		fast_storage.del user_id_key
 	end
 
-	def tmp_user_id_key
+	def user_id_key
 		"#{LACMUS_PREFIX}-tmp-uid"
 	end
 end

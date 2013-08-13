@@ -6,7 +6,7 @@ include Lacmus::Lab
 describe Lacmus::Lab, "Lab" do
   
   before(:each) do
-    Lacmus.restart_temp_user_ids
+    Lacmus.restart_user_ids_counter
     Lacmus::Experiment.nuke_all_experiments
     clear_cookies
     reset_active_experiments_cache
@@ -106,8 +106,7 @@ describe Lacmus::Lab, "Lab" do
 
 	    experiment_id1 = create_and_activate_experiment.id
 	    experiment_id2 = create_and_activate_experiment.id
-			2.times { current_temp_user_id; clear_cookies_and_uid_hash}
-			current_temp_user_id
+			build_tuid_cookie(3)
 	    expect(user_belongs_to_control_group?).to be_true
 
 	    simple_experiment(experiment_id1, "control", "experiment")
@@ -308,8 +307,7 @@ describe Lacmus::Lab, "Lab" do
 
 	    experiment_id1 = create_and_activate_experiment.id
 	    experiment_id2 = create_and_activate_experiment.id
-			2.times { current_temp_user_id; clear_cookies_and_uid_hash}
-			current_temp_user_id
+			build_tuid_cookie(3)
 	    expect(user_belongs_to_control_group?).to be_true
 
 	    render_control_version(experiment_id1) do

@@ -6,7 +6,7 @@ include Lacmus::Lab
 describe Lacmus::Experiment, "Experiment" do
   
   before(:each) do
-    Lacmus.restart_temp_user_ids
+    Lacmus.restart_user_ids_counter
     Lacmus::Experiment.nuke_all_experiments
     clear_cookies
     reset_active_experiments_cache

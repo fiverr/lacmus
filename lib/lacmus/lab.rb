@@ -98,7 +98,7 @@ module Lacmus
 			# returns 0 for empty experiments and control group
 			# returns experiment id for users who are selected for an active experiment
 			def lacmus_cache_key
-				return '0' unless @uid_hash || temp_user_id_cookie
+				return '0' unless @uid_hash || user_id_cookie
 
 				experiment_id = SlotMachine.get_experiment_id_from_slot(slot_for_user).to_i
 				return '0' if [0,-1].include?(experiment_id)
@@ -157,18 +157,18 @@ module Lacmus
 				return last_reset.to_i > exposed_at.to_i
 			end
 
-			# returns the temp user id from the cookies if present. If not,
+			# returns the user id from the cookies if present. If not,
 			# it generates a new one and creates a cookie for it
-			def current_temp_user_id
+			def current_user_id
 				return @uid_hash[:value] if @uid_hash && @uid_hash[:value]
 				
-				uid_cookie = temp_user_id_cookie
+				uid_cookie = user_id_cookie
 				
 				return uid_cookie.to_i if uid_cookie && uid_cookie.respond_to?(:to_i) 
 				return uid_cookie[:value].to_i if uid_cookie && uid_cookie.respond_to?(:keys) 
 
-				new_tmp_id = Lacmus.generate_tmp_user_id
-				@uid_hash = build_tuid_cookie(new_tmp_id)
+				new_user_id = Lacmus.generate_user_id
+				@uid_hash = build_tuid_cookie(new_user_id)
 				@uid_hash[:value]
 			end
 
@@ -185,10 +185,10 @@ module Lacmus
 			# gets the user's slot in the experiment slot list,
 			# having the first slot as the control group (equals to 0)
 			def slot_for_user
-				current_temp_user_id % SlotMachine.experiment_slot_ids.count
+				current_user_id % SlotMachine.experiment_slot_ids.count
 			end
 
-			def temp_user_id_cookie
+			def user_id_cookie
 				cookies['lc_tuid']
 			end
 
@@ -299,8 +299,8 @@ module Lacmus
 				cookies['lc_xpmnt'] = {:value => new_cookie_value, :expires => MAX_COOKIE_TIME}	
 			end
 			
-			def build_tuid_cookie(temp_user_id)
-				cookies['lc_tuid'] = {:value => temp_user_id, :expires => MAX_COOKIE_TIME}
+			def build_tuid_cookie(user_id)
+				cookies['lc_tuid'] = {:value => user_id, :expires => MAX_COOKIE_TIME}
 			end
 
 			def lacmus_logger(log)
