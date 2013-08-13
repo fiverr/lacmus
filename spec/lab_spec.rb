@@ -21,9 +21,13 @@ describe Lacmus::Lab, "Lab" do
   end
 
   def create_and_activate_experiment
-    experiment_id = Lacmus::SlotMachine.create_experiment(@experiment_name, @experiment_description)
-    Lacmus::SlotMachine.activate_experiment(experiment_id)
-    experiment_id
+		exp_obj = create_experiment
+  	exp_obj.activate!
+    exp_obj
+  end
+
+  def create_experiment
+  	Lacmus::Experiment.create!({name: @experiment_name, description: @experiment_description})
   end
 
   def reset_active_experiments_cache
@@ -52,12 +56,8 @@ describe Lacmus::Lab, "Lab" do
   	@rendered_control_group = nil
   end
 
-  def create_experiment
-  	Lacmus::SlotMachine.create_experiment(@experiment_name, @experiment_description)
-  end
-
   it "should place different slots for different user ids" do
-    create_and_activate_experiment
+    create_and_activate_experiment.id
     first_user_slot = slot_for_user
 
     clear_cookies
@@ -71,7 +71,7 @@ describe Lacmus::Lab, "Lab" do
   end
 
   it "should render different results for control and experiment groups (string)" do
-    experiment_id = create_and_activate_experiment
+    experiment_id = create_and_activate_experiment.id
     result1 = simple_experiment(experiment_id, "control", "experiment")
     expect(user_belongs_to_control_group?).to be_false
     expect(result1).to eq("experiment")
@@ -83,7 +83,7 @@ describe Lacmus::Lab, "Lab" do
   end
 
   it "should render different results for control and experiment groups (&block)" do
-  	experiment_id = create_and_activate_experiment
+  	experiment_id = create_and_activate_experiment.id
   	block1 = Proc.new {|i| "text for block1"}
   	block2 = Proc.new {|i| "text for block2"}
 
@@ -107,13 +107,13 @@ describe Lacmus::Lab, "Lab" do
   end
 
   it "should render control group if experiment isn't active (string)" do
-  	experiment_id = create_experiment
+  	experiment_id = create_experiment.id
   	result = simple_experiment(experiment_id, "control", "experiment")
   	expect(result).to eq("control")
   end
 
   it "should render control group if experiment isn't active (&block)" do
-		experiment_id = create_experiment
+		experiment_id = create_experiment.id
 		block = Proc.new {|i| "text for block"}
 
 		expect(user_belongs_to_control_group?).to be_false
@@ -125,7 +125,7 @@ describe Lacmus::Lab, "Lab" do
   end
 
   it "should render experiment before and after cookie expired (string)" do
-  	experiment_id = create_and_activate_experiment
+  	experiment_id = create_and_activate_experiment.id
   	expect(user_belongs_to_control_group?).to be_false
 
   	result = simple_experiment(experiment_id, "control", "experiment")
@@ -138,27 +138,29 @@ describe Lacmus::Lab, "Lab" do
 
   it "should increment views and kpis for exeperiments the user was exposed to (control group, simple)" do
     Lacmus::SlotMachine.resize_and_reset_slot_array(3)
+    Lacmus::SlotMachine.reset_worker_cache
 
-    experiment_id1 = create_and_activate_experiment
-    experiment_id2 = create_and_activate_experiment
+    experiment_id1 = create_and_activate_experiment.id
+    experiment_id2 = create_and_activate_experiment.id
 		2.times { current_temp_user_id; clear_cookies}
 		current_temp_user_id
     expect(user_belongs_to_control_group?).to be_true
 
     simple_experiment(experiment_id1, "control", "experiment")
-    expect(Lacmus::Experiment.new(experiment_id1).control_analytics[:exposures].to_i).to eq(1)
-    expect(Lacmus::Experiment.new(experiment_id2).control_analytics[:exposures].to_i).to eq(0)
+    expect(Lacmus::Experiment.find(experiment_id1).control_analytics[:exposures].to_i).to eq(1)
+    expect(Lacmus::Experiment.find(experiment_id2).control_analytics[:exposures].to_i).to eq(0)
 
     simple_experiment(experiment_id2, "control", "experiment")
-    expect(Lacmus::Experiment.new(experiment_id1).control_analytics[:exposures].to_i).to eq(1)
-    expect(Lacmus::Experiment.new(experiment_id2).control_analytics[:exposures].to_i).to eq(1)
+    expect(Lacmus::Experiment.find(experiment_id1).control_analytics[:exposures].to_i).to eq(1)
+    expect(Lacmus::Experiment.find(experiment_id2).control_analytics[:exposures].to_i).to eq(1)
   end
 
   it "should increment views and kpis for exeperiments the user was exposed to (control group, block)" do
     Lacmus::SlotMachine.resize_and_reset_slot_array(3)
+    Lacmus::SlotMachine.reset_worker_cache
 
-    experiment_id1 = create_and_activate_experiment
-    experiment_id2 = create_and_activate_experiment
+    experiment_id1 = create_and_activate_experiment.id
+    experiment_id2 = create_and_activate_experiment.id
 		2.times { current_temp_user_id; clear_cookies}
 		current_temp_user_id
     expect(user_belongs_to_control_group?).to be_true
@@ -167,42 +169,44 @@ describe Lacmus::Lab, "Lab" do
      	"control"
    	end
 
-    expect(Lacmus::Experiment.new(experiment_id1).control_analytics[:exposures].to_i).to eq(1)
-    expect(Lacmus::Experiment.new(experiment_id2).control_analytics[:exposures].to_i).to eq(0)
+    expect(Lacmus::Experiment.find(experiment_id1).control_analytics[:exposures].to_i).to eq(1)
+    expect(Lacmus::Experiment.find(experiment_id2).control_analytics[:exposures].to_i).to eq(0)
 
     simple_experiment(experiment_id2, "control", "experiment")
-    expect(Lacmus::Experiment.new(experiment_id1).control_analytics[:exposures].to_i).to eq(1)
-    expect(Lacmus::Experiment.new(experiment_id2).control_analytics[:exposures].to_i).to eq(1)
+    expect(Lacmus::Experiment.find(experiment_id1).control_analytics[:exposures].to_i).to eq(1)
+    expect(Lacmus::Experiment.find(experiment_id2).control_analytics[:exposures].to_i).to eq(1)
   end
 
   it "should increment views and kpis for exeperiments the user was exposed to (non-control group, simple)" do
     Lacmus::SlotMachine.resize_and_reset_slot_array(3)
+    Lacmus::SlotMachine.reset_worker_cache
 
-    experiment_id1 = create_and_activate_experiment
-    experiment_id2 = create_and_activate_experiment
+    experiment_id1 = create_and_activate_experiment.id
+    experiment_id2 = create_and_activate_experiment.id
     expect(user_belongs_to_control_group?).to be_false
     expect(user_belongs_to_experiment?(experiment_id1)).to be_true
 
     simple_experiment(experiment_id1, "control", "experiment")
-    expect(Lacmus::Experiment.new(experiment_id1).experiment_analytics[:exposures].to_i).to eq(1)
-    expect(Lacmus::Experiment.new(experiment_id2).experiment_analytics[:exposures].to_i).to eq(0)
+    expect(Lacmus::Experiment.find(experiment_id1).experiment_analytics[:exposures].to_i).to eq(1)
+    expect(Lacmus::Experiment.find(experiment_id2).experiment_analytics[:exposures].to_i).to eq(0)
 
-    expect(Lacmus::Experiment.new(experiment_id1).control_analytics[:exposures].to_i).to eq(0)
-    expect(Lacmus::Experiment.new(experiment_id2).control_analytics[:exposures].to_i).to eq(0)
+    expect(Lacmus::Experiment.find(experiment_id1).control_analytics[:exposures].to_i).to eq(0)
+    expect(Lacmus::Experiment.find(experiment_id2).control_analytics[:exposures].to_i).to eq(0)
 
     simple_experiment(experiment_id2, "control", "experiment")
-    expect(Lacmus::Experiment.new(experiment_id1).experiment_analytics[:exposures].to_i).to eq(1)
-    expect(Lacmus::Experiment.new(experiment_id2).experiment_analytics[:exposures].to_i).to eq(0)
+    expect(Lacmus::Experiment.find(experiment_id1).experiment_analytics[:exposures].to_i).to eq(1)
+    expect(Lacmus::Experiment.find(experiment_id2).experiment_analytics[:exposures].to_i).to eq(0)
 
-    expect(Lacmus::Experiment.new(experiment_id1).control_analytics[:exposures].to_i).to eq(0)
-    expect(Lacmus::Experiment.new(experiment_id2).control_analytics[:exposures].to_i).to eq(0)
+    expect(Lacmus::Experiment.find(experiment_id1).control_analytics[:exposures].to_i).to eq(0)
+    expect(Lacmus::Experiment.find(experiment_id2).control_analytics[:exposures].to_i).to eq(0)
   end
 
   it "should increment views and kpis for exeperiments the user was exposed to (non-control group, block)" do
     Lacmus::SlotMachine.resize_and_reset_slot_array(3)
+    Lacmus::SlotMachine.reset_worker_cache
 
-    experiment_id1 = create_and_activate_experiment
-    experiment_id2 = create_and_activate_experiment
+    experiment_id1 = create_and_activate_experiment.id
+    experiment_id2 = create_and_activate_experiment.id
     expect(user_belongs_to_control_group?).to be_false
     expect(user_belongs_to_experiment?(experiment_id1)).to be_true
 
@@ -210,25 +214,25 @@ describe Lacmus::Lab, "Lab" do
      	"experiment"
    	end
 
-    expect(Lacmus::Experiment.new(experiment_id1).experiment_analytics[:exposures].to_i).to eq(1)
-    expect(Lacmus::Experiment.new(experiment_id2).experiment_analytics[:exposures].to_i).to eq(0)
+    expect(Lacmus::Experiment.find(experiment_id1).experiment_analytics[:exposures].to_i).to eq(1)
+    expect(Lacmus::Experiment.find(experiment_id2).experiment_analytics[:exposures].to_i).to eq(0)
 
-    expect(Lacmus::Experiment.new(experiment_id1).control_analytics[:exposures].to_i).to eq(0)
-    expect(Lacmus::Experiment.new(experiment_id2).control_analytics[:exposures].to_i).to eq(0)
+    expect(Lacmus::Experiment.find(experiment_id1).control_analytics[:exposures].to_i).to eq(0)
+    expect(Lacmus::Experiment.find(experiment_id2).control_analytics[:exposures].to_i).to eq(0)
 
     render_experiment_version(experiment_id2) do
      	"experiment"
    	end
 
-    expect(Lacmus::Experiment.new(experiment_id1).experiment_analytics[:exposures].to_i).to eq(1)
-    expect(Lacmus::Experiment.new(experiment_id2).experiment_analytics[:exposures].to_i).to eq(0)
+    expect(Lacmus::Experiment.find(experiment_id1).experiment_analytics[:exposures].to_i).to eq(1)
+    expect(Lacmus::Experiment.find(experiment_id2).experiment_analytics[:exposures].to_i).to eq(0)
 
-    expect(Lacmus::Experiment.new(experiment_id1).control_analytics[:exposures].to_i).to eq(0)
-    expect(Lacmus::Experiment.new(experiment_id2).control_analytics[:exposures].to_i).to eq(0)
+    expect(Lacmus::Experiment.find(experiment_id1).control_analytics[:exposures].to_i).to eq(0)
+    expect(Lacmus::Experiment.find(experiment_id2).control_analytics[:exposures].to_i).to eq(0)
   end
 
   it "should change the cookie's prefix is user switched to control group after resize" do
-		experiment_id = create_and_activate_experiment
+		experiment_id = create_and_activate_experiment.id
 
 		build_tuid_cookie(3)
   	expect(user_belongs_to_control_group?).to be_false
@@ -236,7 +240,9 @@ describe Lacmus::Lab, "Lab" do
   	expect(control_group_prefix?).to be_false
 
   	Lacmus::SlotMachine.resize_and_reset_slot_array(3)
-  	experiment_id2 = create_and_activate_experiment
+  	Lacmus::SlotMachine.reset_worker_cache
+
+  	experiment_id2 = create_and_activate_experiment.id
   	expect(user_belongs_to_control_group?).to be_true
 
   	simple_experiment(experiment_id2, "control", "experiment")
