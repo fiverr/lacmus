@@ -63,6 +63,9 @@ module Lacmus
       	extend ClassMethods
       	include InstanceMethods
 
+      	# When running under a rails application, we will set
+      	# all the following methods as helper method. This will
+      	# allow us to run tests in rails views and helpers.
       	if Settings.running_under_rails?
       		base.helper_method :render_control_version
       		base.helper_method :render_experiment_version
@@ -78,9 +81,22 @@ module Lacmus
 
   	module InstanceMethods
 
-			# Constants
+			# Set the user's cookies to expire after 1 year.
 			MAX_COOKIE_TIME = Time.now.utc + (60 * 60 * 24 * 365)
 
+			# Execute a ruby block for control group users. The block will also
+			# be executed if the users belongs to another experiment or to an
+			# experiment that is not active anymore. This is done to assure that
+			# something will be rendered to the user, regardless of his status.
+			#
+			# @example Render block for experiment id = 3
+			# 	render_control_version(3) do
+			# 		"default title"
+			# 	end
+			#
+			# @return [ Nil ] if the user belongs to the experiment.
+			# @yieldreturn [ &block ] if the user doesn't belonged to the experiment.
+			#
 			def render_control_version(experiment_id, &block)
 				return if user_belongs_to_experiment?(experiment_id)
 
@@ -96,6 +112,18 @@ module Lacmus
 						 					"experiment_id: #{experiment_id}, Exception: #{e.inspect}"
 			end
 
+			# Execute a ruby block for users belogned to this experiment only, assuming the
+			# experiment is active.
+			#
+			# @example Render block for experiment id = 4
+			# 	render_experiment_version(4) do
+			# 		"experiment title"
+			# 	end
+			#
+			# @return [ Nil ] if experiment isn't active, user belongs to control group,
+			# 	user belongs to another experiment or user doesn't belong to any experiment.
+			# @yieldreturn [ &block ] if user belongs to the experiment and it's active.
+			#
 			def render_experiment_version(experiment_id, &block)	
 				return if @rendered_control_group
 				return if user_belongs_to_empty_slot?
@@ -112,6 +140,22 @@ module Lacmus
 						 					"experiment_id: #{experiment_id}, Exception: #{e.inspect}"
 			end
 
+			# Render one of the given params: control_version or experiment_version
+			# based on which group this user belongs to.
+			#
+			# experiment_version will be rendered only to users who belongs to the given
+			# experiment_id, anyone else will receive the control_version.
+			#
+			# @param [ Integer ] experiment_id The experiment_id
+			# @param [ Integer, Boolean, Symbol ] control_version The version to render for control users
+			# @param [ Integer, Boolean, Symbol ] experiment_version The version to render for experiment users
+			#
+			# @example Simple experiment for experiment id = 6
+			# 	simple_experiment(6, "text for control group", "test for experiment group")
+			#
+			# @return The control_version param for control users
+			# 	and the experiment_version param for experiment users.
+			#
 			def simple_experiment(experiment_id, control_version, experiment_version)
 				empty_slot = user_belongs_to_empty_slot?
 				control_group = user_belongs_to_control_group?
