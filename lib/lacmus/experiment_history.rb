@@ -9,9 +9,9 @@ module Lacmus
 		# Constants
 		KEY_EXPIRE_IN_SECONDS = 2592000 # 1 month
 
-		def log_experiment(user_id, experiment_id)
+		def add(user_id, experiment_id)
 			Lacmus.fast_storage.multi do
-				Lacmus.fast_storage.zadd key(user_id), Time.now.to_i, experiment_id
+				Lacmus.fast_storage.zadd key(user_id), Time.now.utc.to_i, experiment_id
 				Lacmus.fast_storage.expire key(user_id), KEY_EXPIRE_IN_SECONDS
 			end
 		end
@@ -26,8 +26,9 @@ module Lacmus
 			history_items
 		end
 
-		def self.key(user_id)
+		def key(user_id)
 			"#{LACMUS_PREFIX}-exp-history-#{user_id}"
 		end
-	end
-end
+
+	end # of ExperimentHistory
+end # of Lacmus

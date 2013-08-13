@@ -396,14 +396,12 @@ module Lacmus
 	end # of Experiment
 
 	class ExperimentHistoryItem < Experiment
-		attr_accessor :user_id
-		attr_accessor :exposed_at
 
-		def initialize(user_id, experiment_id, exposed_at)
-			@user_id 		= user_id
-			@exposed_at = exposed_at
-
-			super(experiment_id)
+		def initialize(user_id, experiment_id, exposed_at_as_int)
+			@user_id 			 = user_id.to_i
+			@exposed_at 	 = Time.at(exposed_at_as_int)
+			@experiment_id = experiment_id.to_i
+			@experiment 	 = Experiment.find(@experiment_id)
 		end
 
 	end # of ExperimentHistoryItem

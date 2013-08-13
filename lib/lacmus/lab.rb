@@ -144,7 +144,7 @@ module Lacmus
 			def mark_experiment_view(experiment_id, is_control = false)
 				add_exposure_to_cookie(experiment_id, is_control)
 				Experiment.track_experiment_exposure(experiment_id, is_control)
-				ExperimentHistory.log_experiment(experiment_for_user, Time.now.utc)
+				ExperimentHistory.add(current_user_id, experiment_id)
 			end
 
 			# TODO: refactor exposed_at variable
