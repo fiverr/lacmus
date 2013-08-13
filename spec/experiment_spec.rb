@@ -62,8 +62,17 @@ describe Lacmus::Experiment, "Experiment" do
 			expect(find_exp).to be_nil
 		end
 
-		# TODO: write me!
 		it "should change the experiment start time after restart" do
+			exp = create_and_activate_experiment
+			start_time = exp.start_time
+			expect(start_time).not_to be_nil
+
+			sleep 1 # sleeping to force incrementation of experiment's start time 
+			exp.restart!
+
+			start_time_after_restart = exp.start_time
+			expect(start_time_after_restart).not_to be_nil
+			expect(start_time_after_restart).not_to eq(start_time)
 		end
 
 		it "should update an experiment" do
