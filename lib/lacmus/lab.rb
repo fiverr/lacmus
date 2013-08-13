@@ -1,3 +1,4 @@
+require 'lacmus/settings'
 require 'lacmus/experiment'
 require 'lacmus/slot_machine'
 
@@ -9,7 +10,7 @@ module Lacmus
       	extend ClassMethods
       	include InstanceMethods
 
-      	if $__lacmus_has_rails
+      	if Settings.running_under_rails?
       		base.helper_method :render_control_version
       		base.helper_method :render_experiment_version
       		base.helper_method :mark_kpi!
@@ -126,7 +127,7 @@ module Lacmus
 
 			def should_mark_experiment_view?(experiment_id, is_control = false)
 				return false if !Experiment.active?(experiment_id)
-				return true if exposed_experiments.empty?
+				return true  if exposed_experiments.empty?
 
 				if is_control
 					return true if !exposed_experiments_list.include?(experiment_id.to_i)
@@ -263,11 +264,12 @@ module Lacmus
 			# Experiment group users: Cookie will hold the current experiment
 			# he's belonged to.
 			# 
-			# === Examples:
+			# @example:
 			# 	Control group user, exposed to experiment id 3110 at 1375362524
 			# 	and was exposed to experiment id 3111 at 1375362526
 			# 		=> "c|3110;1375362524|3111;1375362526"
 			#
+			# @example:
 			# 	Experiment group user, exposed to experiment id 3112 at 1375362745
 			# 		=> "e|3112;1375362745"
 			#
@@ -302,7 +304,7 @@ module Lacmus
 			end
 
 			def lacmus_logger(log)
-				if $__lacmus_has_rails
+				if Settings.running_under_rails?
 					Rails.logger.error log
 				else
 					puts log

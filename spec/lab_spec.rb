@@ -60,6 +60,22 @@ describe Lacmus::Lab, "Lab" do
   	@rendered_control_group = nil
   end
 
+  def get_exposures_for_experiment(experiment_id, is_control = false)
+    obj = Lacmus::Experiment.find(experiment_id)
+    return obj.control_analytics[:exposures].to_i if is_control
+    obj.experiment_analytics[:exposures].to_i
+  end
+
+  def get_kpis_for_experiment(experiment_id, is_control = false)
+    experiment = Lacmus::Experiment.find(experiment_id)
+    is_control ? experiment.control_kpis : experiment.experiment_kpis
+  end
+
+  def simulate_unique_visitor_exposure(experiment_id)
+    clear_cookies
+    simple_experiment(experiment_id, "control", "experiment")
+  end
+
   # ----------------------------------------------------------------
 
   describe "Basic slots functionality" do
@@ -112,7 +128,28 @@ describe Lacmus::Lab, "Lab" do
 	  	expect(result2).to eq("control")
 	  end
 
-	  it "should increment views and kpis for exeperiments the user was exposed to (control group)" do
+	  it "should not increment exposure counters for a pending or completed experiment" do
+	  	exp_obj = create_experiment
+	  	exp_id 	= exp_obj.id
+
+	    simple_experiment(exp_id, "control", "experiment")
+	    pending_experiment_exposures = get_exposures_for_experiment(exp_id) + get_exposures_for_experiment(exp_id, true)
+	    expect(pending_experiment_exposures).to eq(0)
+
+	    reset_instance_variables
+	    exp_obj.activate!
+	    simple_experiment(exp_id, "control", "experiment")
+	    active_experiment_exposures = get_exposures_for_experiment(exp_id) + get_exposures_for_experiment(exp_id, true)
+	    expect(active_experiment_exposures).to eq(1)
+
+	    reset_instance_variables
+	    exp_obj.deactivate!
+	    simple_experiment(exp_id, "control", "experiment")
+	    completed_experiment_exposures = get_exposures_for_experiment(exp_id) + get_exposures_for_experiment(exp_id, true)
+	    expect(completed_experiment_exposures).to eq(1)
+	  end
+
+	  it "should increment views for exeperiments the user was exposed to (control group)" do
 	    Lacmus::SlotMachine.resize_and_reset_slot_array(3)
 	    Lacmus::SlotMachine.reset_worker_cache
 
@@ -131,7 +168,7 @@ describe Lacmus::Lab, "Lab" do
 	    expect(Lacmus::Experiment.find(experiment_id2).control_analytics[:exposures].to_i).to eq(1)
 	  end
 
-	  it "should increment views and kpis for exeperiments the user was exposed to (non-control group)" do
+	  it "should increment views for exeperiments the user was exposed to (non-control group)" do
 	    Lacmus::SlotMachine.resize_and_reset_slot_array(3)
 	    Lacmus::SlotMachine.reset_worker_cache
 
@@ -171,6 +208,44 @@ describe Lacmus::Lab, "Lab" do
 
 	  	simple_experiment(experiment_id2, "control", "experiment")
 	  	expect(control_group_prefix?).to be_true
+	  end
+
+	  it "should increment KPIs for active experiments only" do
+	    experiment = create_and_activate_experiment
+	    experiment_id = experiment.id
+
+	    simple_experiment(experiment_id, "control", "experiment")
+	    exposures = get_exposures_for_experiment(experiment_id)
+	    expect(exposures).to eq(1)
+	    mark_kpi!('ftb')
+	    mark_kpi!('ftb')
+	    expect(get_kpis_for_experiment(experiment_id)['ftb'].to_i).to eq(2)
+
+			experiment.deactivate!
+			mark_kpi!('ftb')
+	    expect(get_kpis_for_experiment(experiment_id)['ftb'].to_i).to eq(2)
+	  end
+
+	  it "should only add KPIs and exposures to the viewed experiment" do
+	    Lacmus::SlotMachine.resize_and_reset_slot_array(4)
+	    Lacmus::SlotMachine.reset_worker_cache
+	    
+	    experiment_id1 = create_and_activate_experiment.id
+	    experiment_id2 = create_and_activate_experiment.id
+
+	    simulate_unique_visitor_exposure(experiment_id1)
+	    simulate_unique_visitor_exposure(experiment_id1)
+	    simulate_unique_visitor_exposure(experiment_id1)
+
+	    mark_kpi!('ftb')
+	    mark_kpi!('ftb')
+	    mark_kpi!('ftb')
+
+	    expect(get_exposures_for_experiment(experiment_id1).to_i).to eq(3)
+	    expect(get_exposures_for_experiment(experiment_id2).to_i).to eq(0)
+
+	    expect(get_kpis_for_experiment(experiment_id1)['ftb'].to_i).to eq(3)
+	    expect(get_kpis_for_experiment(experiment_id2)['ftb'].to_i).to eq(0)
 	  end
 
   end # of describe "Functionality for render simple experiment using string"
@@ -213,7 +288,7 @@ describe Lacmus::Lab, "Lab" do
 	  	expect(result2).to be_nil
 	  end
 
-	  it "should increment views and kpis for exeperiments the user was exposed to (control group)" do
+	  it "should increment views for exeperiments the user was exposed to (control group)" do
 	    Lacmus::SlotMachine.resize_and_reset_slot_array(3)
 	    Lacmus::SlotMachine.reset_worker_cache
 
@@ -235,7 +310,7 @@ describe Lacmus::Lab, "Lab" do
 	    expect(Lacmus::Experiment.find(experiment_id2).control_analytics[:exposures].to_i).to eq(1)
 	  end
 
-	  it "should increment views and kpis for exeperiments the user was exposed to (non-control group)" do
+	  it "should increment views for exeperiments the user was exposed to (non-control group)" do
 	    Lacmus::SlotMachine.resize_and_reset_slot_array(3)
 	    Lacmus::SlotMachine.reset_worker_cache
 

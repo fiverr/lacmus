@@ -18,5 +18,9 @@ module Lacmus
 	  	return Dir.pwd
 	  end
 
+	  def running_under_rails?
+	  	defined?(Rails)
+	  end
+
 	end
 end
