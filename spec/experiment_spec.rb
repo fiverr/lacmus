@@ -130,7 +130,11 @@ describe Lacmus::Experiment, "Experiment" do
 			expect(find_exp).to be_nil
 		end
 
-	end
+		# TODO: write me!
+		it "should change the experiment start time after restart" do
+		end
+
+	end # of describe "basic experiment functionality"
 
   it "should increment exposure counters for an active exeriment" do
     experiment_id = create_and_activate_experiment

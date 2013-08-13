@@ -158,6 +158,16 @@ module Lacmus
 			new(experiment_hash)
 		end
 
+		def self.find_all_in_list(list)
+			experiments_array 	= []
+			experiments_in_list = Lacmus.fast_storage.zrange list_key_by_type(list), 0, -1
+			experiments_in_list.each do |experiment|
+				experiment_hash = Marshal.load(experiment)
+				experiments_array << new(experiment_hash)
+			end
+			experiments_array
+		end
+
 		def experiment_as_hash
 			attrs_hash = {}
 			instance_variables.each do |var|
@@ -167,28 +177,24 @@ module Lacmus
 			attrs_hash
 		end
 
-		def nuke
-			self.class.nuke_experiment(@id)
-		end
-
 		def available_kpis
 			@control_kpis.merge(@experiment_kpis).keys
 		end
 
-		def control?
-			@id == 0
-		end
-
 		def active?
-			![0, -1].include?(@id)
+			self.class.active?(@id)
 		end
 
-		def inactive?
-			@id == -1
+		def self.active?(experiment_id)
+			SlotMachine.experiment_slot_ids.include?(experiment_id.to_i)
+		end
+
+		def self.special_experiment_id?(experiment_id)
+			[0, -1].include?(experiment_id)
 		end
 
 		def load_experiment_kpis(is_control = false)
-			return {} if control? || inactive?
+			return {} if self.class.special_experiment_id?(@id)
 
 			kpis_hash = {}
 			kpis = Lacmus.fast_storage.zrange(self.class.kpi_key(@id, is_control), 0, -1, :with_scores => true)
@@ -199,7 +205,7 @@ module Lacmus
 		end
 
 		def load_experiment_analytics(is_control = false)
-			return {} if control? || inactive?
+			return {} if self.class.special_experiment_id?(@id)
 
 			{exposures: (Lacmus.fast_storage.get self.class.exposure_key(@id, is_control))}
 		end
@@ -299,11 +305,24 @@ module Lacmus
 		end
 
 		def restart!
-			SlotMachine.restart_experiment(id)
+			nuke_experiment!
+			new_start_time = Time.now.utc
+			start_time = new_start_time
+			save
+
+			if active?
+				SlotMachine.update_start_time_for_experiment(@id, new_start_time.to_i)
+			end
 		end
 
-		def self.active?(experiment_id)
-			SlotMachine.experiment_slot_ids.include?(experiment_id.to_i)
+		def nuke_experiment!
+			self.class.nuke_experiment(@id)
+		end
+
+		def self.restart_all_active_experiments
+			find_all_in_list(:active).each do |experiment|
+				experiment.restart!
+			end
 		end
 
 		private
@@ -315,13 +334,17 @@ module Lacmus
 		# @return [ Integer ] representing the new experiment id
 		#
 		def self.generate_experiment_id
-			Lacmus.fast_storage.incr "#{LACMUS_PREFIX}-last-experiment-id"
+			Lacmus.fast_storage.incr experiment_ids_key
 		end
 
-		def self.is_control_group?(experiment_id)
-			experiment_id == 0
+		def self.experiment_ids_key
+			"#{LACMUS_PREFIX}-last-experiment-id"
 		end
 
+		# Returns the redis key for a given list type.
+		#
+		# @param [ Symbol, String ] list The list type, available options: active, pending, completed
+		#
 		def self.list_key_by_type(list)
 			"#{LACMUS_PREFIX}-#{list.to_s}-experiments"
 		end
