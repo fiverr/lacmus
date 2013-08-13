@@ -8,8 +8,8 @@ describe Lacmus::Experiment, "Experiment" do
   before(:each) do
     Lacmus.restart_temp_user_ids
     Lacmus::Experiment.nuke_all_experiments
+    clear_cookies
     reset_active_experiments_cache
-    @cookies = {}
   end
 
 	describe "Basic functionality" do
