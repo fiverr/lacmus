@@ -9,7 +9,6 @@ module Lacmus
 		# Constants
 		KEY_EXPIRE_IN_SECONDS = 2592000 # 1 month
 
-		# will not add if experiment_id is already there
 		def add(user_id, experiment_id, is_control = false)
 			Lacmus.fast_storage.multi do
 				Lacmus.fast_storage.zadd key(user_id, is_control), Time.now.utc.to_i, experiment_id
