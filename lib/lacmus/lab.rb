@@ -3,6 +3,59 @@ require 'lacmus/experiment'
 require 'lacmus/slot_machine'
 
 module Lacmus
+	# A mixin module that should be included in your host application, providing all
+	# the functionality needed to run a/b tests.
+	#
+	# * Rails application
+	# Including lacmus in any of the application's controllers in order
+	# to start running tests. It's best to include into ApplicationController
+	# so lacmus will be available to the entire app. Once integrated, you can start
+	# running experiments anywhere in your controllers, views and helpers.
+	#
+	# @example Integrate lacmus in a Rails app 
+	# 	class ApplicationController < ActionController::Base
+	# 		include Lacmus::Lab
+	# 	end
+	#
+	#
+	# Before adding an experiment, it's best to add a few mark_kpi! events
+	# around your application. Use mark_kpi for any event that you would
+	# like to measure, and compare it's performence.
+	#
+	# @example Mark the event of new user created
+	# 	class UsersController < ApplicationController
+	# 		def create
+	# 			@user = User.new(params[:user])
+	# 			if @user.save
+	# 				mark_kpi!('new_user')
+	# 			end
+	# 		end
+	# 	end
+	#
+	#
+	# There are 2 ways to run an experiment:
+	# (1) Render text:
+	#  Use to test a small change, possibly a string (can also store a boolean).
+	#
+	# @example Simple experiment for experiment id = 5, test a string
+	# 	simple_experiment(5, "default title", "experiment title")
+	#
+	# @example Simple experiment for experiment id = 6, test a boolean
+	# 	simple_experiment(6, false, true)
+	#
+	# (2) Render block:
+	# Acts exactly the same as render text, but now it's possible
+	# to execute an entire block.
+	#
+	# @example Render block for experiment id = 3
+	# 	render_control_version(3) do
+	# 		"default title"
+	# 	end
+	#
+	# 	render_experiment_version(3) do
+	#			"experiment title"
+	# 	end
+	#
 	module Lab
 
 		def self.included(base)
