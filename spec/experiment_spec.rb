@@ -15,7 +15,7 @@ describe Lacmus::Experiment, "Experiment" do
   
   before(:each) do
     Lacmus.restart_temp_user_ids
-    Lacmus::SlotMachine.nuke_all_experiments
+    Lacmus::Experiment.nuke_all_experiments
     reset_active_experiments_cache
   end
 

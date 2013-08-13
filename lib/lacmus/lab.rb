@@ -146,6 +146,7 @@ module Lacmus
 				ExperimentHistory.log_experiment(experiment_for_user, Time.now.utc)
 			end
 
+			# TODO: refactor exposed_at variable
 			def server_reset_requested?(experiment_id)
 				exposed_at = exposed_experiments.select{|i| i.keys.first == experiment_id.to_s}[0][experiment_id.to_s]
 				last_reset = SlotMachine.last_experiment_reset(experiment_id)

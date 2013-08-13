@@ -23,71 +23,51 @@ module Lacmus
 		# Reprsents the current active experiments (experiment_slots method).
 		$__lcms__active_experiments = nil
 
-		# use Experiment.find_in_list instead
-		# def get_experiments(list)
-		# 	experiments_ary = []
-		# 	experiments = Lacmus.fast_storage.zrange list_key_by_type(list), 0, -1
-		# 	experiments.each do |experiment|
-		# 		experiments_ary << Marshal.load(experiment)
-		# 	end
-		# 	experiments_ary
-		# end
-
-		# restart an active experiment
-		# return if the experiment isn't active.
-		# def restart_experiment(experiment_id)
-		# 	slot = experiment_slot_ids.index experiment_id
-		# 	return if slot.nil?
-
-		# 	slots_hash = experiment_slots
-		# 	ex = Experiment.find(experiment_id)
-		# 	ex.nuke
-		# 	slots_hash[slot][:start_time_as_int] = Time.now.utc.to_i
-		# 	ex.start_time = Time.now
-		# 	ex.save
-		# 	update_experiment_slots(slots_hash)
-		# 	reset_worker_cache
-		# end
-
-		# TODO: move to experiment
-		def deactivate_all_experiments
-			Lacmus.fast_storage.multi do
-				deactivated_experiments = Experiment.find_all_in_list(:active)
-				deactivated_experiments.each do |experiment|
-					deactivate_experiment(experiment[:id])
-				end
+		# Returns the current active experiments. For performence reasons
+		# we'll try to fetch the data from memory first, if we can't (because data
+		# is outdated, for example) we'll get it from redis.
+		#
+		# If we don't have such redis key, the default expeiment slots
+		# will initialize.
+		#
+		# @return [ Array<Hash> ] Array of hashes contaning the active experiments
+		#
+		def experiment_slots
+			if worker_cache_valid?
+				return $__lcms__active_experiments
 			end
+
+			slot_hash_from_redis = Lacmus.fast_storage.get slot_usage_key
+			if slot_hash_from_redis
+				$__lcms__active_experiments = Marshal.load(slot_hash_from_redis)
+				$__lcms__loaded_at_as_int = Time.now.utc.to_i
+			else
+				init_slots
+			end
+			$__lcms__active_experiments
 		end
 
-		# TODO: move to experiment
-		# clears all experiments and resets the slots.
-		# warning - all experiments, including running ones, 
-		# and completed ones will be permanently lost!
-		def nuke_all_experiments
-			Experiment.find_all_in_list(:pending).each do |experiment|
-				experiment.nuke_experiment!
-			end
+		# Convenience method to return the ids of the active experiments.
+		#
+		# @return [ Array<Inreger> ] Array of experiment ids.
+		#
+		def experiment_slot_ids
+			experiment_slots.collect{|slot| slot[:experiment_id].to_i}
+		end
 
-			Experiment.find_all_in_list(:active).each do |experiment|
-				experiment.nuke_experiment!
-			end
-
-			Experiment.find_all_in_list(:completed).each do |experiment|
-				experiment.nuke_experiment!
-			end
-
-			Lacmus.fast_storage.del list_key_by_type(:pending)
-			Lacmus.fast_storage.del list_key_by_type(:active)
-			Lacmus.fast_storage.del list_key_by_type(:completed)
-
-			reset_slots_to_defaults
+		# Convenience method to return the ids of the active experiments
+		# excluding the control group slot.
+		#
+		# @return [ Array<Inreger> ] Array of experiment ids.
+		#
+		def experiment_slot_ids_without_control_group
+			experiment_slot_ids[1..-1]
 		end
 
 		# Resize the experiment slots array based on the
 		# given new size.
 		def resize_and_reset_slot_array(new_size)
 			slot_array = experiment_slots
-			# last_reset_hash = {}
 			new_size = new_size.to_i
 
 			if new_size <= slot_array.count
@@ -102,27 +82,8 @@ module Lacmus
 			end
 
 			Experiment.restart_all_active_experiments
-			update_start_time_for_all_experiments
-
-			# get_experiments(:active).each do |experiment_hash|
-			# 	exp = Experiment.find(experiment_hash[:experiment_id])
-			# 	exp.restart!
-			# 	exp.reload
-			# 	last_reset_hash.merge!({exp.id => exp.start_time.to_i})
-			# end
-
-			# slot_array.each do |slot|
-			# 	exp_id_for_slot = slot[:experiment_id].to_i
-			# 	next if exp_id_for_slot == -1 # TODO: also next for 0..
-			# 	if exp_id_for_slot == 0
-			# 		slot[:start_time_as_int] = Time.now.utc.to_i
-			# 	else
-			# 		slot[:start_time_as_int] = last_reset_hash[exp_id_for_slot]
-			# 	end
-			# end
-
+			# update_start_time_for_all_experiments
 			update_experiment_slots(slot_array)
-			reset_worker_cache # TODO: remove me and fix tests!
 			return true
 		end
 
@@ -172,24 +133,7 @@ module Lacmus
 		# @return [ Boolean ]
 		#
 		def any_active_experiments?
-			(get_experiments(:active).count > 0)
-		end
-
-		# Reset the worker's cache so next time experiment slots
-		# is called we'll get the data from redis.
-		#
-		def reset_worker_cache
-			$__lcms__loaded_at_as_int = 0
-		end
-
-		# TODO: can remove if nuke all exps and get exps are being moved to
-		# experiment class.
-		# Returns the redis key for a given list type
-		#
-		# @param [ Symbol, String ] list The list type, available options: active, pending, completed
-		#
-		def list_key_by_type(list)
-			"#{LACMUS_PREFIX}-#{list.to_s}-experiments"
+			experiment_slot_ids_without_control_group.any? {|i| i != -1}
 		end
 
 		# Find within the experiment_slot_ids in redis the first
@@ -248,47 +192,6 @@ module Lacmus
 			experiment_slot_ids[slot.to_i]
 		end
 
-		# Returns the current active experiments. For performence reasons
-		# we'll try to fetch the data from memory first, if we can't (because data
-		# is outdated, for example) we'll get it from redis.
-		#
-		# If we don't have such redis key, the default expeiment slots
-		# will initialize.
-		#
-		# @return [ Array<Hash> ] Array of hashes contaning the active experiments
-		#
-		def experiment_slots
-			if worker_cache_valid?
-				return $__lcms__active_experiments
-			end
-
-			slot_hash_from_redis = Lacmus.fast_storage.get slot_usage_key
-			if slot_hash_from_redis
-				$__lcms__active_experiments = Marshal.load(slot_hash_from_redis)
-				$__lcms__loaded_at_as_int = Time.now.utc.to_i
-			else
-				init_slots
-			end
-			$__lcms__active_experiments
-		end
-
-		# Convenience method to return the ids of the active experiments.
-		#
-		# @return [ Array<Inreger> ] Array of experiment ids.
-		#
-		def experiment_slot_ids
-			experiment_slots.collect{|slot| slot[:experiment_id].to_i}
-		end
-
-		# Convenience method to return the ids of the active experiments
-		# excluding the control group slot.
-		#
-		# @return [ Array<Inreger> ] Array of experiment ids.
-		#
-		def experiment_slot_ids_without_control_group
-			experiment_slot_ids[1..-1]
-		end
-
 		# Marshal the given experiment slot ids and update the redis key.
 		#
 		# @param [ Array<Hash> ] slots Array of experiment slot ids
@@ -324,9 +227,17 @@ module Lacmus
 		# @return [ Integer ] The last experiment reset time.
 		#
 		def last_experiment_reset(experiment_id)
-			cached_exp = experiment_slots.select{|i| i[:experiment_id].to_s == experiment_id.to_s}[0]
-			return if cached_exp.nil?
-			return cached_exp[:start_time_as_int]
+			experiment_hash = experiment_slots.select{|i| i[:experiment_id].to_s == experiment_id.to_s}[0]
+			return if experiment_hash.nil?
+
+			experiment_hash[:start_time_as_int]
+		end
+
+		# Reset the worker's cache so next time experiment slots
+		# is called we'll get the data from redis.
+		#
+		def reset_worker_cache
+			$__lcms__loaded_at_as_int = 0
 		end
 
 		private
