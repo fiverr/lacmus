@@ -34,8 +34,8 @@ module Lacmus
 			@name 								= options[:name]
 			@description 					= options[:description]
 			@screenshot_url 			= options[:screenshot_url]
-			@start_time 					= Time.at(options[:start_time_as_int])  if options[:start_time_as_int]
-			@end_time 						= Time.at(options[:end_time_as_int]) 	  if options[:end_time_as_int]
+			@start_time 					= options[:start_time]
+			@end_time 						= options[:end_time]
 			@control_kpis 				= load_experiment_kpis(true) 			|| {}
 			@experiment_kpis 			= load_experiment_kpis 						|| {}
 			@control_analytics 		= load_experiment_analytics(true) || {}
@@ -90,15 +90,15 @@ module Lacmus
 			current_list = @status
 
 			if current_list == :pending && list == :active
-				@start_time_as_int = Time.now.utc.to_i
+				@start_time = Time.now.utc
 			end
 
 			if current_list == :completed && list == :active
-				@end_time_as_int = nil
+				@end_time = nil
 			end
 
 			if current_list == :active && list == :completed
-				@end_time_as_int = Time.now.utc.to_i
+				@end_time = Time.now.utc
 			end
 
 			result = add_to_list(list)
@@ -307,7 +307,7 @@ module Lacmus
 		def restart!
 			nuke_experiment!
 			new_start_time = Time.now.utc
-			start_time = new_start_time
+			@start_time = new_start_time
 			save
 
 			if active?

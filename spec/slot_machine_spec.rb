@@ -82,7 +82,17 @@ describe Lacmus::SlotMachine, "Management Features" do
 		end
 
 		it "should update the experiment start time after resize" do
+			experiment_id1 = create_and_activate_experiment
+			start_time = Lacmus::SlotMachine.last_experiment_reset(experiment_id1)
+			expect(start_time).to be > 0
 
+			sleep 1
+			Lacmus::SlotMachine.resize_and_reset_slot_array(3)
+			Lacmus::SlotMachine.reset_worker_cache
+
+			start_time2 = Lacmus::SlotMachine.last_experiment_reset(experiment_id1)
+			expect(start_time2).to be > 0
+			expect(start_time2).not_to eq(start_time)
 		end
 
 	end # of describe "Resize functionality"

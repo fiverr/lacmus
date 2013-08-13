@@ -19,6 +19,10 @@ describe Lacmus::Experiment, "Experiment" do
     reset_active_experiments_cache
   end
 
+  # ----------------------------------------------------------------
+  # HELPER METHODS
+  # ----------------------------------------------------------------
+
   def new_experiment_attrs
   	attrs = {
   		:name 					=> @experiment_name,
@@ -80,7 +84,9 @@ describe Lacmus::Experiment, "Experiment" do
 		$__lcms__loaded_at_as_int = 0
 	end
 
-	describe "basic experiment functionality" do
+	# ----------------------------------------------------------------
+
+	describe "Basic functionality" do
 
 		it "should create new experiment as pending with the given values" do
 			exp_obj = Lacmus::Experiment.create!(new_experiment_attrs)
@@ -134,7 +140,7 @@ describe Lacmus::Experiment, "Experiment" do
 		it "should change the experiment start time after restart" do
 		end
 
-	end # of describe "basic experiment functionality"
+	end # of describe "Basic functionality"
 
   it "should increment exposure counters for an active exeriment" do
     experiment_id = create_and_activate_experiment

@@ -6,9 +6,16 @@ module Lacmus
 	module SlotMachine
 		extend self
 
-		# Constants
-		CONTROL_SLOT_HASH = {:experiment_id => 0, :start_time_as_int => 0}
-		EMPTY_SLOT_HASH   = {:experiment_id => -1, :start_time_as_int => 0}
+		# Represents the hash of control group slot, experiment id = 0.
+		CONTROL_SLOT_HASH = {experiment_id: 0, start_time_as_int: 0}
+
+		# Represents the hash of empty slot, meaning there is no
+		# active experiment running. Used when adding new slots by the
+		# resize method or when concluding an active experiment.
+		EMPTY_SLOT_HASH   = {experiment_id: -1, start_time_as_int: 0}
+
+		# Represents the default experiment slots array with two slots,
+		# one for control and one empty.
 		DEFAULT_SLOT_HASH = [CONTROL_SLOT_HASH, EMPTY_SLOT_HASH]
 
 		# Represents (in seconds) how long the cache is going to be valid.
@@ -82,7 +89,7 @@ module Lacmus
 			end
 
 			Experiment.restart_all_active_experiments
-			# update_start_time_for_all_experiments
+			update_start_time_for_all_experiments
 			update_experiment_slots(slot_array)
 			return true
 		end
