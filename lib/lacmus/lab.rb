@@ -281,10 +281,15 @@ module Lacmus
 			end
 
 			# Returns if we should mark the experiment id for the given user.
-			# User is only marked once for each experiment he is exposed and
-			# belongs to.
+			# User is only marked once for the experiments he belongs to.
 			#
-			# based on whether 
+			# @note After experiment restart, the user will be marked again
+			# once he is exposed to the experiment.
+			#
+			# @param [ Integer ] experiment_id The experiment id
+			#
+			# @return [ Boolean ] True if should mark the view, false otherwise.
+			#
 			def should_mark_experiment_view?(experiment_id)
 				return false if !Experiment.active?(experiment_id)
 				return true  if exposed_experiments.empty?
@@ -299,8 +304,12 @@ module Lacmus
 				end
 			end
 
-			# Update the user's cookie with the current experiment
-			# he belongs to and increment the experiment's views.
+			# Mark the experiment view by updating the user's cookie with the given
+			# experiment_id, add the experiment to the user's experiment history log
+			# and update the exposures count for the experiment.
+			#
+			# @param [ Integer ] experiment_id The experiment id
+			#
 			def mark_experiment_view(experiment_id)
 				is_control = user_belongs_to_control_group?
 
@@ -309,7 +318,20 @@ module Lacmus
 				ExperimentHistory.add(current_user_id, experiment_id)
 			end
 
-			# TODO: refactor exposed_at variable
+			# Checks if the user should be re-exposed to the given
+			# experiment. This happens if the experiment was restarted
+			# since the user's exposure.
+			#
+			# @example
+			# 	User was exposed at Wed Aug 14 09:08:32 UTC 2013
+			# 	Experiment was restarted at Wed Aug 14 11:08:32 UTC 2013
+			#
+			# 		Lacmus.server_reset_requested?(3) # => true
+			#
+			# @param [ Integer ] experiment_id The experiment id
+			#
+			# @return [ Boolean ] True if reset requested, false otherwise.
+			#
 			def server_reset_requested?(experiment_id)
 				exposed_at = exposed_experiments.select{|i| i.keys.first == experiment_id.to_s}[0][experiment_id.to_s]
 				last_reset = SlotMachine.last_experiment_reset(experiment_id)
@@ -319,15 +341,19 @@ module Lacmus
 				return last_reset.to_i > exposed_at.to_i
 			end
 
-			# returns the user id from the cookies if present. If not,
-			# it generates a new one and creates a cookie for it
+			# Returns the user id from the user's cookie.
+			# If there is no cookie (first visit, cookies expired/removed etc)
+			# then we'll also generate a new cookie and user id.
+			#
+			# @return [ Integer ] The user id
+			#
 			def current_user_id
 				return @uid_hash[:value] if @uid_hash && @uid_hash[:value]
 				
 				uid_cookie = user_id_cookie
-				
-				return uid_cookie.to_i if uid_cookie && uid_cookie.respond_to?(:to_i) 
-				return uid_cookie[:value].to_i if uid_cookie && uid_cookie.respond_to?(:keys) 
+				if uid_cookie
+					return uid_cookie.is_a?(Hash) ? uid_cookie[:value].to_i : uid_cookie.to_i
+				end
 
 				new_user_id = Lacmus.generate_user_id
 				@uid_hash = build_tuid_cookie(new_user_id)
