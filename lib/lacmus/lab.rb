@@ -360,11 +360,43 @@ module Lacmus
 				@uid_hash[:value]
 			end
 
+			# Returns the current experiment the user was exposed to,
+			# based on his cookie.
+			#
+			# @note Control group users hold more than 1 experiment in
+			# 	their cookie because they're exposed to all available
+			# 	experiments, yet this method will only return the last
+			# 	experiment in their cookie.
+			#
+			# @example Experiment group user, belongs to experiment id = 3
+			# 	experiment_cookie: {:value => "e|3;29837462924", :expires => Wed Aug 14 09:48:09 UTC 2014}
+			# 	current_experiment_id # => 3
+			#
+			# @example Control group user, exposed to experiment ids 3 and 4
+			# 	experiment_cookie: {:value => "c|3;29837462924|4;29547432424", :expires => Wed Aug 14 09:48:09 UTC 2014}
+			# 	current_experiment_id # => 4
+			#
+			# @example User without a cookie
+			# 	experiment_cookie: {}
+			# 	current_experiment_id # => nil
+			#
+			# @return [ Nil ] If the user wasn't exposed to any experiment.
+			# @return [ Integer ] The id of the last exposed experiment.
+			#
 			def current_experiment_id
 				return unless experiment_cookie
 				exposed_experiments.last.keys.last.to_i
 			end
 
+			# Returns the experiment cookie
+			#
+			# @example Control group user, exposed to experiment id = 3
+			# 	at 1376475145 (Wed Aug 14 10:12:38 UTC 2013 as int)
+			#
+			# 	experiment_cookie_value # => "c|3;1376475145"
+			#
+			# @return [ String ] The experiments this user was exposed to (and when)
+			#
 			def experiment_cookie_value
 				cookie_value = experiment_cookie
 				cookie_value.is_a?(Hash) ? cookie_value[:value] : cookie_value
@@ -396,7 +428,7 @@ module Lacmus
 			# the exposed experiments cookie has a first cell that hints of the user's
 			# slot group (control, empty slot or experiment) followed by the experiments the user was exposed to
 			#
-			# === Example for cookie: [c|234;29837462924]
+			# === Example for cookie: "c|234;29837462924"
 			def exposed_experiments
 				experiments_array = []
 				if experiment_cookie_value
