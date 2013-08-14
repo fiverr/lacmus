@@ -238,13 +238,13 @@ module Lacmus
 
 			# Returns the experiment id this user belongs to.
 			#
-			# @example User belongs to control group (experiment id = 0)
+			# @example User belongs to control group
 			# 	Lacmus.experiment_for_user # => 0
 			#
-			# @example User belongs to empty slot (experiment id = -1)
+			# @example User belongs to empty slot
 			# 	Lacmus.experiment_for_user # => -1
 			#
-			# @example User belongs to experiment (experiment id = 5)
+			# @example User belongs to experiment id = 5
 			# 	Lacmus.experiment_for_user # => 5
 			#
 			# @return [ Integer ] The experiment id for the given user.
@@ -402,20 +402,76 @@ module Lacmus
 				cookie_value.is_a?(Hash) ? cookie_value[:value] : cookie_value
 			end
 
+			# Returns the value of the user id cookie.
+			#
+			# @note When the cookie is already set, the cookie is part of
+			#  	the request and we're going to get the value as string.
+			# 	But, if we created the cookie within this request, this method
+			# 	will return a hash containg the cookie's value.
+			# 	Because of that, it's best not to call this method directly,
+			# 	but to current_user_id which handles both end cases.
+			#
+			# @example Cookie sent in request
+			# 	user_id_cookie # => "13231"
+			#
+			# @example Cookie was created in this request
+			# 	user_id_cookie # => {:value => "13231", :expires => Wed Aug 14 09:48:09 UTC 2014}
+			#
+			# @return [ String ] If the cookie was sent in the request.
+			# @return [ Hash ] If the cookie was just created.
+			#
 			def user_id_cookie
 				cookies['lc_tuid']
 			end
 
+			# Generate the user id cookie with the given user_id.
+			#
+			# @param [ Integer ] user_id.
+			#
+			# @return [ Hash ] The generated cookie.
+			#
+			def build_tuid_cookie(user_id)
+				cookies['lc_tuid'] = {:value => user_id, :expires => MAX_COOKIE_TIME}
+			end
+
+			# Returns the value of the user's experiment cookie.
+			#
+			# @note When the cookie is already set, the cookie is part of
+			#  	the request and we're going to get the value as string.
+			# 	But, if we created the cookie within this request, this method
+			# 	will return a hash containg the cookie's value.
+			# 	Because of that, it's best not to call this method directly,
+			# 	but to experiment_cookie_value which handles both end cases.
+			#
+			# @example Cookie sent in request
+			# 	experiment_cookie # => "c|3;1376475145"
+			#
+			# @example Cookie was created in this request
+			# 	experiment_cookie # => {:value => "c|3;29837462924", :expires => Wed Aug 14 09:48:09 UTC 2014}
+			#
+			# @return [ String ] If the cookie was sent in the request.
+			# @return [ Hash ] If the cookie was just created.
+			#
 			def experiment_cookie
 				cookies['lc_xpmnt']
 			end
 
+			# Returns the group prefix fort he user based on
+			# which group/experiment he belongs to.
+			#
+			# @return [ String ] The group prefix
+			#
 			def group_prefix
 				return "c" if user_belongs_to_control_group?
 				return "x" if user_belongs_to_empty_slot?
 				return "e"
 			end
 
+			# Returns whether the user's experiment cookie contains
+			# the control group prefix. 
+			#
+			# @return [ Boolean ] True if contains the prefix, false otherwise.
+			#
 			def control_group_prefix?
 				value = experiment_cookie_value
 				return false if value.nil?
@@ -424,11 +480,15 @@ module Lacmus
 				return cookie_prefix == "c"
 			end
 
-			# returns hash {'234' => 2013-07-25 13:00:36 +0300}
-			# the exposed experiments cookie has a first cell that hints of the user's
-			# slot group (control, empty slot or experiment) followed by the experiments the user was exposed to
+			# Returns an array containing all the experiments the user
+			# was exposed to and when.
 			#
-			# === Example for cookie: "c|234;29837462924"
+			# @example User exposed to experiment id = 234 at 2013-07-25 13:00:36 +0300
+			# 	exposed_experiments # => [{'234' => 2013-07-25 13:00:36 +0300}]
+			#
+			# @return [ Array<Hash> ] Array of hashes, where keys represent the experiment id
+			# 	and values reprsent the exposure time.
+			#
 			def exposed_experiments
 				experiments_array = []
 				if experiment_cookie_value
@@ -446,10 +506,27 @@ module Lacmus
 
 			# Returns an array containings all experiment ids the user
 			# was exposed to.
+			#
+			# @example User exposed to experiment id = 234 at 2013-07-25 13:00:36 +0300
+			# 	exposed_experiments_list # => [234]
+			#
+			# @return [ Array<Integer> ] Array of integers representing all exposed experiment ids.
+			#
 			def exposed_experiments_list
 				exposed_experiments.collect{|i| i.keys}.flatten.collect{|i| i.to_i}
 			end
 
+			# Returns a list of all experiment ids that the user was exposed to
+			# and should be marked when calling mark_kpi! method.
+			#
+			# @note Check should_mark_kpi_for_experiment? method to understand why
+			# 	we can't simply to return all the exposed experiments.
+			#
+			# @example User exposed to experiment ids 8, 13, 15
+			# 	exposed_experiments_list_for_mark_kpi # => [8, 15]
+			#
+			# @return [ Array<Integer> ] Array of integers representing experiment ids that should be marked.
+			#
 			def exposed_experiments_list_for_mark_kpi
 				experiment_ids = []
 				exposed_experiments.each do |experiment|
@@ -461,6 +538,17 @@ module Lacmus
 				experiment_ids
 			end
 
+			# Check whether we should mark kpi for the given experiment_id.
+			# If the experiment is no longer active or restarted after
+			# the user exposure - we return false.
+			#
+			# @example User exposed to experiment id = 234 at Wed Aug 14 13:37:36 UTC 2013
+			# 	and it was restarted at Wed Aug 14 15:23:16 UTC 2013
+			#
+			# 	should_mark_kpi_for_experiment?(234) # => false
+			#
+			# @return [ Boolean ] True if should mark kpi, false otherwise.
+			#			
 			def should_mark_kpi_for_experiment?(experiment_id)
 				experiment_id = experiment_id.to_i
 				return false if !Experiment.active?(experiment_id)
@@ -478,14 +566,17 @@ module Lacmus
 			# Experiment group users: Cookie will hold the current experiment
 			# he's belonged to.
 			# 
-			# @example:
-			# 	Control group user, exposed to experiment id 3110 at 1375362524
-			# 	and was exposed to experiment id 3111 at 1375362526
-			# 		=> "c|3110;1375362524|3111;1375362526"
+			# @example Control group user, already exposed to experiment id 3110 at 1375362524
 			#
-			# @example:
-			# 	Experiment group user, exposed to experiment id 3112 at 1375362745
-			# 		=> "e|3112;1375362745"
+			# 	add_exposure_to_cookie(3111, true)
+			# 		=> {:value => "c|3110;1375362524|3111;1375362526", :expires => Wed Aug 14 09:48:09 UTC 2014}
+			#
+			# @example Experiment group user
+			#
+			# 	add_exposure_to_cookie(3111, false)
+			# 		=> {:value => "e|3111;1375362526", :expires => Wed Aug 14 09:48:09 UTC 2014}
+			#
+			# @return [ Hash ] The content of the updated user's experiment cookie
 			#
 			def add_exposure_to_cookie(experiment_id, is_control = false)
 				new_data = "#{experiment_id};#{Time.now.utc.to_i}"
@@ -505,6 +596,16 @@ module Lacmus
 				cookies['lc_xpmnt'] = {:value => data, :expires => MAX_COOKIE_TIME}	
 			end
 
+			# Remove the given experiment_id from the user's experiment
+			# cookie if present.
+			#
+			# @example
+			# 	cookies['lc_xpmnt'] = {:value => "e|3111;1375362526", :expires => Wed Aug 14 09:48:09 UTC 2014}
+			# 	remove_exposure_from_cookie(3111)
+			# 		=> {:value => "e", :expires => Wed Aug 15 10:41:23 UTC 2014}
+			#
+			# @return [ Hash ] The content of the updated user's experiment cookie
+			#
 			def remove_exposure_from_cookie(experiment_id)
 				return unless experiment_cookie_value
 				exps_array 			 		= experiment_cookie_value.split('|')
@@ -512,11 +613,9 @@ module Lacmus
 				new_cookie_value    = new_cookie_value.join('|')
 				cookies['lc_xpmnt'] = {:value => new_cookie_value, :expires => MAX_COOKIE_TIME}	
 			end
-			
-			def build_tuid_cookie(user_id)
-				cookies['lc_tuid'] = {:value => user_id, :expires => MAX_COOKIE_TIME}
-			end
 
+			# Logger used to print lacmus errors.
+			#
 			def lacmus_logger(log)
 				if Settings.running_under_rails?
 					Rails.logger.error log
