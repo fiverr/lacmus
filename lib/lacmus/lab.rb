@@ -219,16 +219,33 @@ module Lacmus
 
 			private
 
-			# gets the user's slot in the experiment slot list,
-			# having the first slot as the control group (equals to 0)
+			# Returns the experiment slot this user belongs to, starting from 0.
+			# @note This is not the actual experiment id, just the slot.
+			#
+			# @example User belongs to the second slot, which holds experiment id = 3
+			# 	current_user_id = 1; SlotMachine.experiment_slot_ids = [0, 3]
+			#
+			# 	Lacmus.slot_for_user # => 1
+			#
+			# @example User belongs to the first slot, which is the control group
+			# 	current_user_id = 2; SlotMachine.experiment_slot_ids = [0, 3]
+			#
+			# 	Lacmus.slot_for_user # => 0
+			#
 			def slot_for_user
 				current_user_id % SlotMachine.experiment_slot_ids.count
 			end
 
-			# Returns the experiment id this user belongs to. Other than
-			# an actual experiment id, we can also get 0 if the user belongs to
-			# control group or -1 if there is currently no active experiemnt
-			# for this user.
+			# Returns the experiment id this user belongs to.
+			#
+			# @example User belongs to control group (experiment id = 0)
+			# 	Lacmus.experiment_for_user # => 0
+			#
+			# @example User belongs to empty slot (experiment id = -1)
+			# 	Lacmus.experiment_for_user # => -1
+			#
+			# @example User belongs to experiment (experiment id = 5)
+			# 	Lacmus.experiment_for_user # => 5
 			#
 			# @return [ Integer ] The experiment id for the given user.
 			#
@@ -238,7 +255,7 @@ module Lacmus
 
 			# Convenience method to check if user belongs to control group.
 			#
-			# @return [ Boolean ] True if belongs to a control, false otherwise.
+			# @return [ Boolean ] True if belongs to control, false otherwise.
 			#
 			def user_belongs_to_control_group?
 				slot_for_user == 0
@@ -248,7 +265,7 @@ module Lacmus
 			#
 			# @param [ Integer ] experiment_id The experiment id to check against.
 			#
-			# @return [ Boolean ] True if belongs to an experiment, false otherwise.
+			# @return [ Boolean ] True if belongs to the given experiment, false otherwise.
 			#
 			def user_belongs_to_experiment?(experiment_id)
 				experiment_for_user == experiment_id
@@ -257,7 +274,7 @@ module Lacmus
 			# Convenience method to check if user belongs to a slot which
 			# doesn't hold an active experiment.
 			#
-			# @return [ Boolean ] True if belongs to an inactive slot, false otherwise.
+			# @return [ Boolean ] True if belongs to empty slot, false otherwise.
 			#
 			def user_belongs_to_empty_slot?
 				experiment_for_user == -1
