@@ -99,8 +99,8 @@ module Lacmus
 				return if user_belongs_to_experiment?(experiment_id)
 
 				control_group = user_belongs_to_control_group?
-				if control_group && should_mark_experiment_view?(experiment_id, control_group)
-					mark_experiment_view(experiment_id, true)
+				if control_group && should_mark_experiment_view?(experiment_id)
+					mark_experiment_view(experiment_id)
 				end
 
 				@rendered_control_group = true
@@ -160,8 +160,8 @@ module Lacmus
 				belongs_to_experiment = user_belongs_to_experiment?(experiment_id)
 
 				if empty_slot || control_group || !belongs_to_experiment
-					if control_group && should_mark_experiment_view?(experiment_id, control_group)
-						mark_experiment_view(experiment_id, true)
+					if control_group && should_mark_experiment_view?(experiment_id)
+						mark_experiment_view(experiment_id)
 					end
 					return control_version
 				end
@@ -280,11 +280,16 @@ module Lacmus
 				experiment_for_user == -1
 			end
 
-			def should_mark_experiment_view?(experiment_id, is_control = false)
+			# Returns if we should mark the experiment id for the given user.
+			# User is only marked once for each experiment he is exposed and
+			# belongs to.
+			#
+			# based on whether 
+			def should_mark_experiment_view?(experiment_id)
 				return false if !Experiment.active?(experiment_id)
 				return true  if exposed_experiments.empty?
 
-				if is_control
+				if user_belongs_to_control_group?
 					return true if !exposed_experiments_list.include?(experiment_id.to_i)
 					return server_reset_requested?(experiment_id)
 				else
@@ -296,7 +301,9 @@ module Lacmus
 
 			# Update the user's cookie with the current experiment
 			# he belongs to and increment the experiment's views.
-			def mark_experiment_view(experiment_id, is_control = false)
+			def mark_experiment_view(experiment_id)
+				is_control = user_belongs_to_control_group?
+
 				add_exposure_to_cookie(experiment_id, is_control)
 				Experiment.track_experiment_exposure(experiment_id, is_control)
 				ExperimentHistory.add(current_user_id, experiment_id)
