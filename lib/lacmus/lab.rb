@@ -219,18 +219,46 @@ module Lacmus
 
 			private
 
-			def user_belongs_to_control_group?
-				slot_for_user == 0
+			# gets the user's slot in the experiment slot list,
+			# having the first slot as the control group (equals to 0)
+			def slot_for_user
+				current_user_id % SlotMachine.experiment_slot_ids.count
 			end
 
+			# Returns the experiment id this user belongs to. Other than
+			# an actual experiment id, we can also get 0 if the user belongs to
+			# control group or -1 if there is currently no active experiemnt
+			# for this user.
+			#
+			# @return [ Integer ] The experiment id for the given user.
+			#
 			def experiment_for_user
 				@user_experiment ||= SlotMachine.get_experiment_id_from_slot(slot_for_user)
 			end
 
+			# Convenience method to check if user belongs to control group.
+			#
+			# @return [ Boolean ] True if belongs to a control, false otherwise.
+			#
+			def user_belongs_to_control_group?
+				slot_for_user == 0
+			end
+
+			# Convenience method to check if user belongs to given experiment_id.
+			#
+			# @param [ Integer ] experiment_id The experiment id to check against.
+			#
+			# @return [ Boolean ] True if belongs to an experiment, false otherwise.
+			#
 			def user_belongs_to_experiment?(experiment_id)
 				experiment_for_user == experiment_id
 			end
 
+			# Convenience method to check if user belongs to a slot which
+			# doesn't hold an active experiment.
+			#
+			# @return [ Boolean ] True if belongs to an inactive slot, false otherwise.
+			#
 			def user_belongs_to_empty_slot?
 				experiment_for_user == -1
 			end
@@ -290,12 +318,6 @@ module Lacmus
 			def experiment_cookie_value
 				cookie_value = experiment_cookie
 				cookie_value.is_a?(Hash) ? cookie_value[:value] : cookie_value
-			end
-
-			# gets the user's slot in the experiment slot list,
-			# having the first slot as the control group (equals to 0)
-			def slot_for_user
-				current_user_id % SlotMachine.experiment_slot_ids.count
 			end
 
 			def user_id_cookie
