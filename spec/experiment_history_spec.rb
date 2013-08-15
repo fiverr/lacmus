@@ -16,8 +16,8 @@ describe Lacmus::Experiment, "Experiment" do
 	  	Lacmus::ExperimentHistory.clear(user_id)
 
 	    Lacmus::ExperimentHistory.add(user_id, experiment_id, true)
-	    control_group 		= Lacmus::ExperimentHistory.for_control_group(user_id)
-	    experiments_group = Lacmus::ExperimentHistory.for_experiment_group(user_id)
+	    control_group 		= Lacmus::ExperimentHistory.for_group(user_id, true)
+	    experiments_group = Lacmus::ExperimentHistory.for_group(user_id, false)
 	    expect(control_group).not_to be_empty
 	    expect(experiments_group).to be_empty
 
@@ -35,8 +35,8 @@ describe Lacmus::Experiment, "Experiment" do
 	  	Lacmus::ExperimentHistory.clear(user_id)
 
 	    Lacmus::ExperimentHistory.add(user_id, experiment_id, false)
-	    control_group 		= Lacmus::ExperimentHistory.for_control_group(user_id)
-	    experiments_group = Lacmus::ExperimentHistory.for_experiment_group(user_id)
+	    control_group 		= Lacmus::ExperimentHistory.for_group(user_id, true)
+	    experiments_group = Lacmus::ExperimentHistory.for_group(user_id, false)
 	    expect(control_group).to be_empty
 	    expect(experiments_group).not_to be_empty
 
