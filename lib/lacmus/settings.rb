@@ -14,7 +14,7 @@ module Lacmus
 
 	  def root
 	  	return Lacmus::ROOT if defined?(Lacmus::ROOT)
-	  	return Rails.root   if defined?(Rails)
+	  	return Rails.root   if defined?(Rails) && Rails.root
 	  	return Dir.pwd
 	  end
 
