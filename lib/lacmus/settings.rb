@@ -60,5 +60,5 @@ module Lacmus
 	  	defined?(Rails)
 	  end
 
-	end
-end
+	end # of Settings
+end # of Lacmus
