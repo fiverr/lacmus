@@ -1,9 +1,4 @@
-require 'active_support/core_ext/hash/indifferent_access'
-
-require 'lacmus'
-require 'lacmus/slot_machine'
-require 'lacmus/settings'
-
+# encoding: utf-8
 module Lacmus
 	class Experiment
 

@@ -1,4 +1,9 @@
+# encoding: utf-8
+require 'redis'
 require 'yaml'
+
+require 'active_support/concern'
+require 'active_support/core_ext/hash/indifferent_access'
 
 require 'lacmus/version'
 require 'lacmus/settings'
@@ -17,11 +22,13 @@ end
 module Lacmus
 	extend self
 
-	# Constants
+	# Prefix used for the different redis keys.
 	LACMUS_PREFIX = "lcms-#{Settings.env_name}"
 
-	# Class Variables
+	# Store all the settings loaded from the lacus.yml file.
 	@@settings = Settings.load!
+
+	# Store the database connection (redis).
 	@@fast_engine = nil
 
 	def fast_storage

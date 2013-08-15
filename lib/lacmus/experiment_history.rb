@@ -1,8 +1,4 @@
-require 'redis'
-
-require 'lacmus'
-require 'lacmus/experiment'
-
+# encoding: utf-8
 module Lacmus
 	# Responsible to store all the experiments that any user
 	# was exposed to. Can be used to run all sort of BI/analytics.
@@ -32,15 +28,10 @@ module Lacmus
 		#
 		# @param [ Integer ] user_id
 		#
-		# @example User id = 34000 was exposed to experiment_id = 45 as control group
-		# 	Lacmus::ExperimentHistory.all(34000) # =>
-		# 	[#<Lacmus::ExperimentHistoryItem:0x007ff9ac2efb28 @user_id=1600, @exposed_at=2013-08-14 17:37:59 +0300, @experiment_id=9495, @control=true,
-		# 		@experiment=#<Lacmus::Experiment:0x007ff9ac2f4628 @id=9495, @status=:pending, @name="experimentum", @description="dekaprius dela karma",
-		# 			@screenshot_url="http://google.com",
-		# 			@start_time=nil, @end_time=nil, @control_kpis={}, @experiment_kpis={}, @control_analytics={"exposures"=>nil},
-		# 			@experiment_analytics={"exposures"=>nil}, @errors=[]>>]
+		# @example Get entire experiment history for user id 34000
+		# 	Lacmus::ExperimentHistory.all(34000)
 		#
-		# @return [ Array<ExperimentHistoryItem> ] Array of ExperimentHistoryItem objects
+		# @return [ Array<ExperimentHistoryItem> ] Array of ExperimentHistoryItem objects.
 		#
 		def all(user_id)
 			control_group 	 = for_group(user_id, true)
@@ -55,7 +46,7 @@ module Lacmus
 		# @param [ Boolean ] is_control True for experiment history as control group,
 		# 	false for experiment history as experiment group user.
 		#
-		# @return [ Array<ExperimentHistoryItem> ] Array of ExperimentHistoryItem objects
+		# @return [ Array<ExperimentHistoryItem> ] Array of ExperimentHistoryItem objects.
 		#
 		def for_group(user_id, is_control)
 			history = []

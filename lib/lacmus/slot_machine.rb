@@ -1,8 +1,4 @@
-require 'redis'
-
-require 'lacmus/experiment'
-require 'lacmus/settings'
-
+# encoding: utf-8
 module Lacmus
 	module SlotMachine
 		extend self

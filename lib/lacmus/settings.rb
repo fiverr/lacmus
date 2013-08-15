@@ -1,5 +1,4 @@
-require 'active_support/core_ext/hash/indifferent_access'
-
+# encoding: utf-8
 module Lacmus
 	# Lacmus settings are defined using the lacmus.yml file.
 	# Lacmus is using redis as the database engine, so it's
