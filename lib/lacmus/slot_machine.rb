@@ -1,6 +1,7 @@
+require 'redis'
+
 require 'lacmus/experiment'
 require 'lacmus/settings'
-require 'redis'
 
 module Lacmus
 	module SlotMachine

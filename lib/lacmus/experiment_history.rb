@@ -1,6 +1,7 @@
+require 'redis'
+
 require 'lacmus'
 require 'lacmus/experiment'
-require 'redis'
 
 module Lacmus
 	# Responsible to store all the experiments that any user
