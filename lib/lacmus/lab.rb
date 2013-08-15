@@ -54,11 +54,11 @@ module Lacmus
       # all the following methods as helper method. This will
       # allow us to run tests in rails views and helpers.
 			if Settings.running_under_rails?
-    		base.helper_method :render_control_version
-    		base.helper_method :render_experiment_version
-    		base.helper_method :mark_kpi!
-    		base.helper_method :simple_experiment
-    		base.helper_method :lacmus_cache_key
+    		helper_method :render_control_version
+    		helper_method :render_experiment_version
+    		helper_method :mark_kpi!
+    		helper_method :simple_experiment
+    		helper_method :lacmus_cache_key
     	end
     end
 

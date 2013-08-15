@@ -31,6 +31,10 @@ module Lacmus
 	# Store the database connection (redis).
 	@@fast_engine = nil
 
+	# Return the redis connection, acts as the Lacmus' engine.
+	#
+	# @return [ Redis ] The redis connection.
+	#
 	def fast_storage
 		@@fast_engine ||= Redis.new(@@settings['fast_storage'])
 	end
