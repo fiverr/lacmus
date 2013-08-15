@@ -3,25 +3,19 @@ require 'lacmus/experiment'
 require 'lacmus/slot_machine'
 
 module Lacmus
-	# A mixin module that should be included in your host application, providing all
-	# the functionality needed to run a/b tests.
+	# A mixin module that will automatically be included in your host application,
+	# providing all the functionality needed to run a/b tests.
 	#
 	# * Rails application
-	# Including lacmus in any of the application's controllers in order
-	# to start running tests. It's best to include into ApplicationController
-	# so lacmus will be available to the entire app. Once integrated, you can start
-	# running experiments anywhere in your controllers, views and helpers.
-	#
-	# @example Integrate lacmus in a Rails app 
-	# 	class ApplicationController < ActionController::Base
-	# 		include Lacmus::Lab
-	# 	end
+	# Lacmus::Lab is included into ActionController::Base which will make it available
+	# in any of your controllers, views and helpers.
 	#
 	# Before adding an experiment, it's best to add a few mark_kpi! events
 	# around your application. Use mark_kpi for any event that you would
-	# like to measure, and compare it's performence.
+	# like to measure and compare it's performence.
 	#
-	# @example Mark the event of new user created
+	# @example Mark the event of a new user created
+	#
 	# 	class UsersController < ApplicationController
 	# 		def create
 	# 			@user = User.new(params[:user])
@@ -46,6 +40,7 @@ module Lacmus
 	# to execute an entire block.
 	#
 	# @example Render block for experiment id = 3
+	#
 	# 	render_control_version(3) do
 	# 		"default title"
 	# 	end
