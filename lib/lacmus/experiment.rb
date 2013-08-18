@@ -39,6 +39,25 @@ module Lacmus
 			@errors 							= []
 		end
 
+		# Create a new experiment and save it.
+		#
+		# @param options [ Hash ] options The experiment metadata.
+		# @option [ String ] name The experiment name.
+		# @option [ String ] description The experiment description.
+		# @option [ String ] screenshot_url A url showing the experiment in place,
+		# 	can be used as visiable representation.
+		#
+		# @example Create a new experiment
+		# 	Expierment.create!(name: 'Join now button', description: 'Testing join now button as green instead of blue',
+		# 										 screenshot_url: 'http://bit.ly/abLG57')
+		# 
+		# #<Lacmus::Experiment:0x007fc03a4ea280 @id=9992, @name="Join now button", @status=:pending
+		# 		@description="Testing join now button as green instead of blue", @screenshot_url="http://bit.ly/abLG57",
+		# 		@control_analytics={"exposures"=>nil}, @control_kpis={}, @start_time=nil>, @end_time=nil, @errors=[],
+		# 		@experiment_analytics={"exposures"=>nil}, @experiment_kpis={}>
+		#
+		# @return [ Experiment ] The newly created experiment object
+		#
 		def self.create!(options = {})
 			attrs = {
 				id: 		generate_experiment_id,
