@@ -1,5 +1,9 @@
 # encoding: utf-8
 module Lacmus
+	# Responsible to display and manage the active experiments.
+	# The active experiments are accessable using the experiment_slots method.
+	#
+	# @note Check out experiment_slots method for more info.
 	module SlotMachine
 		extend self
 
@@ -9,7 +13,7 @@ module Lacmus
 		# Represents the hash of empty slot, meaning there is no
 		# active experiment running. Used when adding new slots by the
 		# resize method or when concluding an active experiment.
-		EMPTY_SLOT_HASH   = {experiment_id: -1, start_time_as_int: 0}
+		EMPTY_SLOT_HASH = {experiment_id: -1, start_time_as_int: 0}
 
 		# Represents the default experiment slots array with two slots,
 		# one for control and one empty.
@@ -27,14 +31,26 @@ module Lacmus
 		# Reprsents the current active experiments (experiment_slots method).
 		$__lcms__active_experiments = nil
 
-		# Returns the current active experiments. For performence reasons
-		# we'll try to fetch the data from memory first, if we can't (because data
-		# is outdated, for example) we'll get it from redis.
+		# The bread and butter of SlotMachine. Experiment slots is an array
+		# representing the available slots. The first slot is always the control
+		# group (identified by experiment_id = 0) followed by experiments.
+		# A slot can also be inactive, inactive slot identified by experiment_id = -1.
+		# The default experiment slots array consists of 2 slots, one for contorl
+		# group and one for inactive experiment.
 		#
-		# If we don't have such redis key, the default expeiment slots
-		# will initialize.
+		# @example Default experiment slots
+		# 	SlotMachine.experiment_slots
+		# 		# => [{experiment_id: 0, start_time_as_int: 0},
+		# 					{experiment_id: -1, start_time_as_int: 0}]
 		#
-		# @return [ Array<Hash> ] Array of hashes contaning the active experiments
+		# @example 3 available slots,including 1 inactive slot.
+		# 	SlotMachine.experiment_slots
+		# 		# => [{experiment_id: 0, start_time_as_int: 0},
+		# 					{experiment_id: -1, start_time_as_int: 0},
+		# 					{experiment_id: 3, start_time_as_int: 1376475145}]
+		#
+		#
+		# @return [ Array<Hash> ] Array of hashes contaning the active experiments.
 		#
 		def experiment_slots
 			if worker_cache_valid?
@@ -68,15 +84,41 @@ module Lacmus
 			experiment_slot_ids[1..-1]
 		end
 
-		# Resize the experiment slots array based on the
-		# given new size.
+		# Resize the experiment slots array based on the given new size.
+		# It's only possible to decrease inactive slots, so if a slot is occupied
+		# resize will fail, see examples. If resize is sucessful, all active
+		# experiments will be restarted.
+		#
+		# @param [ Integer ] new_size The amount of slots you would to increase/decrease to.
+		#
+		# @example Increase amount of slots by 2
+		# 	experiment_slots:
+		# 		[{experiment_id: 0, start_time_as_int: 0}, {experiment_id: 3, start_time_as_int: 1376814732}]
+		#
+		# 	SlotMachine.resize_and_reset_slot_array(4) # => true
+		# 	experiment_slots after resize:
+		# 		[{experiment_id: 0, start_time_as_int: 0}, {experiment_id: 3, start_time_as_int: 1376913212},
+	  # 		 {experiment_id: -1, start_time_as_int: 0}, {experiment_id: -1, start_time_as_int: 0}]
+	  #
+	  # @example Try to decrease active slots
+	  # 	experiment_slots:
+	  # 		[{experiment_id: 0, start_time_as_int: 0}, {experiment_id: 3, start_time_as_int: 1376913212},
+	  # 		 {experiment_id: 4, start_time_as_int: 1376913212}, {experiment_id: 8, start_time_as_int: 1376913212}]
+	  #
+		# 	SlotMachine.resize_and_reset_slot_array(2) # => false
+		# 	experiment_slots after resize:
+		# 		[{experiment_id: 0, start_time_as_int: 0}, {experiment_id: 3, start_time_as_int: 1376913212},
+	  # 		 {experiment_id: 4, start_time_as_int: 1376913212}, {experiment_id: 8, start_time_as_int: 1376913212}]
+		#
+		# @return [ Boolean ] True if resize was successful, false otherwise.
+		#
 		def resize_and_reset_slot_array(new_size)
 			slot_array = experiment_slots
 			new_size = new_size.to_i
 
 			if new_size <= slot_array.count
 				last_used_index = find_last_used_slot(slot_array)
-				# return false if there is an occupied slot
+				# Return false if there is an occupied slot
 				# located after the size requested.
 				return false if last_used_index > new_size
 				slot_array = slot_array[0...new_size]
@@ -91,6 +133,14 @@ module Lacmus
 			return true
 		end
 
+		# Update the start time data for a given experiment_id in experiments
+		# slots.
+		#
+		# @param [ Integer ] experiment_id The experiment id
+		# @param [ Integer ] start_time_as_int The new start time, ex: Time.now.utc.to_i
+		#
+		# @return True if successfully updated the start time, false otherwise.	
+		# 
 		def update_start_time_for_experiment(experiment_id, start_time_as_int)
 			slot = experiment_slot_ids.index experiment_id
 			return false if slot.nil?
@@ -101,6 +151,9 @@ module Lacmus
 			return true
 		end
 
+		# Update start time for all active experiments in experiment_slots.
+		# The new start_time value is being pulled from the Experiment object.
+		#
 		def update_start_time_for_all_experiments
 			slots = experiment_slots
 			slots.each do |slot|
@@ -118,8 +171,8 @@ module Lacmus
 		# @param [ Array<Hash> ] slot_array Array of experiment slots
 		#
 		# @example
-		# 	slot_array = [{:experiment_id=>0, :start_time_as_int=>0}, {:experiment_id=>-1, :start_time_as_int=>1233242234},
-		#									{:experiment_id=>3, :start_time_as_int=>13212380}, {:experiment_id=>-1, :start_time_as_int=>0}]
+		# 	experiment_slots: [{:experiment_id=>0, :start_time_as_int=>0}, {:experiment_id=>-1, :start_time_as_int=>1233242234},
+		#											 {:experiment_id=>3, :start_time_as_int=>13212380}, {:experiment_id=>-1, :start_time_as_int=>0}]
 		#
 		# 	find_last_used_slot(slot_array) # => 2
 		#
