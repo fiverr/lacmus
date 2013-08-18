@@ -50,11 +50,6 @@ module Lacmus
 		# @example Create a new experiment
 		# 	Expierment.create!(name: 'Join now button', description: 'Testing join now button as green instead of blue',
 		# 										 screenshot_url: 'http://bit.ly/abLG57')
-		# 
-		# #<Lacmus::Experiment:0x007fc03a4ea280 @id=9992, @name="Join now button", @status=:pending
-		# 		@description="Testing join now button as green instead of blue", @screenshot_url="http://bit.ly/abLG57",
-		# 		@control_analytics={"exposures"=>nil}, @control_kpis={}, @start_time=nil>, @end_time=nil, @errors=[],
-		# 		@experiment_analytics={"exposures"=>nil}, @experiment_kpis={}>
 		#
 		# @return [ Experiment ] The newly created experiment object
 		#
@@ -70,6 +65,22 @@ module Lacmus
 			exp_obj
 		end
 
+		# Add an experiment to the given list. Experiments are belonged to
+		# a list based on their status, so the active list stores all the
+		# experiments with the active status etc.
+		#
+		# @param [ Symbol ] list The list to add the experiment to.
+		# 	Available options: :pending, :active, :completed
+		#
+		# @example Add a pending experiment to the active list
+		# 	experiment = Expierment.create!(name: 'Join now button')
+		# 	experiment.status # => 'pending'
+		#   experiment.add_to_list(:active) # => true
+		#
+		# 	experiment.status # => 'active'
+		#
+		# @return True if added successfully, false otherwise. 
+		#
 		def add_to_list(list)
 			if list.to_sym == :active
 				available_slot_id = SlotMachine.find_available_slot
@@ -80,14 +91,22 @@ module Lacmus
 			@status = list.to_sym
 			save
 
-			Lacmus.fast_storage.zadd self.class.list_key_by_type(list), @id, Marshal.dump(experiment_as_hash)
+			Lacmus.fast_storage.zadd self.class.list_key_by_type(list), @id, Marshal.dump(self.to_hash)
 			return true
 		end
 
 		# Removes an experiment from the given list.
 		#
-		# @param [ Symbol, String ] list The list to remove from.
+		# @param [ Symbol ] list The list to remove the experiment from.
 		# 	Available options: :pending, :active, :completed
+		#
+		# @example Remove a pending experiment
+		# 	experiment = Expierment.create!(name: 'Join now button')
+		# 	experiment.id # => 1
+		# 	experiment.status # => 'pending'
+		#   experiment.remove_from_list(:pending)
+		#
+		# 	Experiment.find(1) # => nil
 		#
 		def remove_from_list(list)
 			if list.to_sym == :active
@@ -96,10 +115,22 @@ module Lacmus
 			Lacmus.fast_storage.zremrangebyscore self.class.list_key_by_type(list), @id, @id
 		end	
 
-		# Move experiment from one list to another.
-		# Valid list types - :pending, :active, :completed
+		# Removing an experiment from the current list
+		# and adding it to the given list.
 		#
-		# @return [ Boolean ] true on success, false if experiment not found
+		# @param [ Symbol ] list The list to move the experiment to.
+		# 	Available options: :pending, :active, :completed
+		#
+		# @example Move a pending experiment to the active list
+		# 	experiment = Expierment.create!(name: 'Join now button')
+		# 	experiment.id # => 1
+		# 	experiment.status # => 'pending'
+		#   experiment.move_to_list(:active) # => true
+		#
+		# 	experiment.status # => 'active'
+		# 	Experiment.find_in_list(:pending, 1) # => nil
+		#
+		# @return [ Boolean ] True if successfully moved to the new list, false otherwise.
 		#
 		def move_to_list(list)
 			current_list = @status
@@ -123,31 +154,45 @@ module Lacmus
 			return true
 		end
 
+		# Save the experiment data.
+		#
+		# @example Edit the experiment name
+		# 	experiment = Expierment.create!(name: 'Join now button')
+		# 	experiment.name # => 1
+		# 	experiment.name # => 'Join now button'
+		#
+		# 	experiment.name = 'Site footer'
+		#   experiment.save
+		#
+		# 	saved_experiment = Experiment.find(1)
+		# 	saved_experiment.name # => 'Site footer'
+		#
 		def save
 			Lacmus.fast_storage.multi do
 				Lacmus.fast_storage.zremrangebyscore self.class.list_key_by_type(@status), @id, @id
-				Lacmus.fast_storage.zadd self.class.list_key_by_type(@status), @id, Marshal.dump(experiment_as_hash)
+				Lacmus.fast_storage.zadd self.class.list_key_by_type(@status), @id, Marshal.dump(self.to_hash)
 			end
 		end
 
 		# Activate an exeprtiment.
 		# 
-		# @return [ Boolean ] true on success, false on failure.
+		# @return [ Boolean ] True on success, false on failure.
 		#
 		def activate!
 			move_to_list(:active)
 		end
 
-		# Removes an experiment from the active experiments list
-		# and clears it's slot.
+		# Deactive an experiment, changing it's status to completed
+		# and removing it from experiment_slots, making the slot empty.
+		#
+		# @return [ Boolean ] True on success, false on failure.
 		#
 		def deactivate!
 			SlotMachine.remove_experiment_from_slot(@id)
 			move_to_list(:completed)
 		end
 
-		# Permanently deletes an experiment, removing the experiment
-		# from it's current list (active/pending/completed).
+		# Permanently deletes an experiment.
 		#
 		# @param [ Integer ] experiment_id The id of the experiment.
 		#
@@ -183,7 +228,7 @@ module Lacmus
 			experiments_array
 		end
 
-		def experiment_as_hash
+		def to_hash
 			attrs_hash = {}
 			instance_variables.each do |var|
 				key = var.to_s.delete('@')
@@ -247,31 +292,27 @@ module Lacmus
 			end
 		end
 
-		def self.mark_control_group_kpi(kpi, experiment_id)
-			Lacmus.fast_storage.zincrby kpi_key(experiment_id, true), 1, kpi.to_s
+		def self.mark_control_group_kpi(kpi, experiment_id, amount = 1)
+			Lacmus.fast_storage.zincrby kpi_key(experiment_id, true), amount.to_i, kpi.to_s
 		end
 
-		def self.mark_experiment_group_kpi(kpi, experiment_id)
-			Lacmus.fast_storage.zincrby kpi_key(experiment_id, false), 1, kpi.to_s
+		def self.mark_experiment_group_kpi(kpi, experiment_id, amount = 1)
+			Lacmus.fast_storage.zincrby kpi_key(experiment_id, false), amount.to_i, kpi.to_s
 		end
 
-		def self.set_experiment_kpis(experiment_id, kpis = {})
-			return if kpis.empty?
-			kpis.keys.each do |kpi_name|
-				Lacmus.fast_storage.zincrby kpi_key(experiment_id, false), kpis[kpi_name], kpi_name
-			end
-		end
+		# def self.set_experiment_kpis(experiment_id, kpis = {})
+		# 	return if kpis.empty?
+		# 	kpis.keys.each do |kpi_name|
+		# 		Lacmus.fast_storage.zincrby kpi_key(experiment_id, false), kpis[kpi_name], kpi_name
+		# 	end
+		# end
 
-		def self.set_control_kpis(experiment_id, kpis = {})
-			return if kpis.empty?
-			kpis.keys.each do |kpi_name|
-				Lacmus.fast_storage.zincrby kpi_key(experiment_id, true), kpis[kpi_name], kpi_name
-			end
-		end
-
-		def self.set_counter(experiment_id, counter_name, control_group, value)
-
-		end
+		# def self.set_control_kpis(experiment_id, kpis = {})
+		# 	return if kpis.empty?
+		# 	kpis.keys.each do |kpi_name|
+		# 		Lacmus.fast_storage.zincrby kpi_key(experiment_id, true), kpis[kpi_name], kpi_name
+		# 	end
+		# end
 
 		def self.track_experiment_exposure(experiment_id, is_control = false)
 			if is_control
@@ -391,14 +432,14 @@ module Lacmus
 			"#{LACMUS_PREFIX}-#{list.to_s}-experiments"
 		end
 	
-		def self.all_from(list)
-			experiments = []
-			experiments_as_hash = SlotMachine.get_experiments(list)
-			experiments_as_hash.each do |exp_hash|
-				experiments << Experiment.new(exp_hash)
-			end
-			experiments
-		end
+		# def self.all_from(list)
+		# 	experiments = []
+		# 	experiments_as_hash = SlotMachine.get_experiments(list)
+		# 	experiments_as_hash.each do |exp_hash|
+		# 		experiments << Experiment.new(exp_hash)
+		# 	end
+		# 	experiments
+		# end
 
 		def self.kpi_key(experiment_id, is_control = false)
 			"#{LACMUS_PREFIX}-#{is_control}-kpis-#{experiment_id.to_s}"
