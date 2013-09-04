@@ -62,8 +62,9 @@ module Lacmus
     	end
     end
 
-		# Set the user's cookies to expire after 1 year.
-		MAX_COOKIE_TIME = Time.now.utc + (60 * 60 * 24 * 365)
+		# Set the user's cookies to expire based on the max_experiment_duration_in_days value.
+		COOKIE_AGE_IN_SECONDS = (60 * 60 * 24 * Settings.max_experiment_duration_in_days)
+		MAX_COOKIE_TIME 			= Time.now.utc + COOKIE_AGE_IN_SECONDS
 
 		# Execute a ruby block for control group users. The block will also
 		# be executed if the users belongs to another experiment or to an
@@ -367,7 +368,7 @@ module Lacmus
 		# @return [ Integer ] The id of the last exposed experiment.
 		#
 		def current_experiment_id
-			return unless experiment_cookie
+			return unless experiment_data
 			exposed_experiments.last.keys.last.to_i
 		end
 
@@ -380,10 +381,10 @@ module Lacmus
 		#
 		# @return [ String ] The experiments this user was exposed to (and when)
 		#
-		def experiment_cookie_value
-			cookie_value = experiment_cookie
-			cookie_value.is_a?(Hash) ? cookie_value[:value] : cookie_value
-		end
+		# def experiment_cookie_value
+		# 	cookie_value = experiment_data
+		# 	cookie_value.is_a?(Hash) ? cookie_value[:value] : cookie_value
+		# end
 
 		# Returns the value of the user id cookie.
 		#
@@ -435,8 +436,42 @@ module Lacmus
 		# @return [ String ] If the cookie was sent in the request.
 		# @return [ Hash ] If the cookie was just created.
 		#
-		def experiment_cookie
-			cookies['lc_xpmnt']
+		# @todo was experiment_cookie
+		def experiment_data_from_cookie
+			cookie_data = cookies['lc_xpmnt']
+			cookie_data.is_a?(Hash) ? cookie_data[:value] : cookie_data
+		end
+
+		def experiment_data_from_redis
+			Lacmus::fast_storage.get redis_experiment_data_key(current_user_id)
+		end
+
+		def experiment_data
+			return experiment_data_from_cookie if use_cookie_storage?
+			experiment_data_from_redis
+		end
+
+		def set_experiment_data(cookie_hash)
+			if use_cookie_storage?
+				cookies['lc_xpmnt'] = cookie_hash
+			end
+
+			if use_redis_storage?
+				Lacmus::fast_storage.setex redis_experiment_data_key(current_user_id), COOKIE_AGE_IN_SECONDS, cookie_hash
+			end
+		end
+
+		def redis_experiment_data_key(user_id)
+			"#{LACMUS_PREFIX}-exp-data-#{user_id}"
+		end
+
+		def use_cookie_storage?
+			return false unless defined?(cookies)
+			['auto', 'cookie'].include?(Settings.experiment_data_store)
+		end
+
+		def use_redis_storage?
+			['auto', 'redis'].include?(Settings.experiment_data_store)
 		end
 
 		# Returns the group prefix fort he user based on
@@ -456,7 +491,7 @@ module Lacmus
 		# @return [ Boolean ] True if contains the prefix, false otherwise.
 		#
 		def control_group_prefix?
-			value = experiment_cookie_value
+			value = experiment_data
 			return false if value.nil?
 
 			cookie_prefix = value.split("|")[0]
@@ -474,8 +509,8 @@ module Lacmus
 		#
 		def exposed_experiments
 			experiments_array = []
-			if experiment_cookie_value
-				raw_experiment_array = experiment_cookie_value.split("|")[1..-1] # first element represents the group_prefix
+			if experiment_data
+				raw_experiment_array = experiment_data.split("|")[1..-1] # first element represents the group_prefix
 				raw_experiment_array.collect!{|pair| pair.split(";").collect!{|val|val.to_i}}
 			else
 				return []
@@ -572,11 +607,11 @@ module Lacmus
 			# when experiment_slots is changed. If user was belonged to experiment group
 			# and now is control - we need to recreate his cookie.
 			if is_control && cookies['lc_xpmnt'] && control_group_prefix?
-				data = "#{experiment_cookie_value}|#{new_data}"
+				data = "#{experiment_data}|#{new_data}"
 			else
 				data = "#{group_prefix}|#{new_data}"
 			end
-			cookies['lc_xpmnt'] = {:value => data, :expires => MAX_COOKIE_TIME}	
+			set_experiment_data({:value => data, :expires => MAX_COOKIE_TIME})
 		end
 
 		# Remove the given experiment_id from the user's experiment
@@ -590,11 +625,11 @@ module Lacmus
 		# @return [ Hash ] The content of the updated user's experiment cookie
 		#
 		def remove_exposure_from_cookie(experiment_id)
-			return unless experiment_cookie_value
-			exps_array 			 		= experiment_cookie_value.split('|')
+			return unless experiment_data
+			exps_array 			 		= experiment_data.split('|')
 			new_cookie_value 		= exps_array.delete_if {|i| i.start_with?("#{experiment_id};")}
 			new_cookie_value    = new_cookie_value.join('|')
-			cookies['lc_xpmnt'] = {:value => new_cookie_value, :expires => MAX_COOKIE_TIME}	
+			set_experiment_data({:value => new_cookie_value, :expires => MAX_COOKIE_TIME})
 		end
 
 		# Logger used to print lacmus errors.

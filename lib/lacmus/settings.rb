@@ -24,6 +24,13 @@ module Lacmus
 		# 
 		def load!
 	    data = YAML.load(File.open("#{root}/config/lacmus.yml"))[env_name]
+	    data.keys.each do |key|
+				self.class.instance_eval do
+		    	define_method(key) do
+		    		data[key]
+		    	end
+	    	end
+			end
 	    ActiveSupport::HashWithIndifferentAccess.new(data)
 	  end
 
@@ -59,6 +66,8 @@ module Lacmus
 	  def running_under_rails?
 	  	defined?(Rails)
 	  end
+
+	  load!
 
 	end # of Settings
 end # of Lacmus

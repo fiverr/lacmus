@@ -25,9 +25,6 @@ module Lacmus
 	# Prefix used for the different redis keys.
 	LACMUS_PREFIX = "lcms-#{Settings.env_name}"
 
-	# Store all the settings loaded from the lacus.yml file.
-	@@settings = Settings.load!
-
 	# Store the database connection (redis).
 	@@fast_engine = nil
 
@@ -36,7 +33,7 @@ module Lacmus
 	# @return [ Redis ] The redis connection.
 	#
 	def fast_storage
-		@@fast_engine ||= Redis.new(@@settings['fast_storage'])
+		@@fast_engine ||= Redis.new(Settings.fast_storage)
 	end
 
 	# Generate a new unique user id for the given user.

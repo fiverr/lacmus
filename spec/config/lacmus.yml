@@ -1,4 +1,6 @@
 test:
+  max_experiment_duration_in_days: 60
   fast_storage:
     host: 127.0.0.1
     port: 6379
+  experiment_data_store: auto # cookie, redis, auto
