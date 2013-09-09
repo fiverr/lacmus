@@ -431,15 +431,6 @@ module Lacmus
 		def self.list_key_by_type(list)
 			"#{LACMUS_PREFIX}-#{list.to_s}-experiments"
 		end
-	
-		# def self.all_from(list)
-		# 	experiments = []
-		# 	experiments_as_hash = SlotMachine.get_experiments(list)
-		# 	experiments_as_hash.each do |exp_hash|
-		# 		experiments << Experiment.new(exp_hash)
-		# 	end
-		# 	experiments
-		# end
 
 		def self.kpi_key(experiment_id, is_control = false)
 			"#{LACMUS_PREFIX}-#{is_control}-kpis-#{experiment_id.to_s}"
