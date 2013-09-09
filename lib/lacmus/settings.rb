@@ -14,10 +14,15 @@ module Lacmus
 	module Settings
 		extend self
 
-		# Loads all the settings from the lacmus.yml file.
+		attr_accessor :all
+
+		# Loads all the settings from the lacmus.yml file and define a method
+		# for each key.
 		#
 		# @example
 		# 	Lacmus::Settings.load! # => {"fast_storage"=>{"host"=>"127.0.0.1", "port"=>6379}}
+		# 	Lacmus::Settings.fast_storage # => {"host"=>"127.0.0.1", "port"=>6379}
+		# 	Lacmus::Settings.all # => {"fast_storage"=>{"host"=>"127.0.0.1", "port"=>6379}}
 		#
 		# @return [ ActiveSupport::HashWithIndifferentAccess ] All the settings with indifference access,
 		# 	making keys available both as strings and symbols.
@@ -31,7 +36,7 @@ module Lacmus
 		    	end
 	    	end
 			end
-	    ActiveSupport::HashWithIndifferentAccess.new(data)
+	    self.all = ActiveSupport::HashWithIndifferentAccess.new(data)
 	  end
 
 		# Returns the environment we're running under.
