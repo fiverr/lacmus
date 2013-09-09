@@ -47,13 +47,13 @@ module Lacmus
 	# 	end
 	#
 	module Lab
-		extend ActiveSupport::Concern
+		extend ActiveSupport::Concern		
 
     included do
     	# When running under a rails application, we will set
       # all the following methods as helper method. This will
       # allow us to run tests in rails views and helpers.
-			if Settings.running_under_rails?
+			if Settings.running_under_rails? && self == ActionController::Base
     		helper_method :render_control_version
     		helper_method :render_experiment_version
     		helper_method :mark_kpi!
@@ -175,6 +175,10 @@ module Lacmus
 			lacmus_logger "#{__method__}: Failed to mark kpi: #{kpi}\n" <<
 										"Exception message: #{e.inspect}\n" <<
 										"Exception backtrace: #{e.backtrace[0..10]}"
+		end
+
+		def set_alternative_user_id(user_id, alternative_user_id)
+			AlternativeUser.set_user_id(user_id, alternative_user_id)
 		end
 
 		# Used to prevent a situation where experiments are not exposed properly
@@ -332,16 +336,30 @@ module Lacmus
 		# @return [ Integer ] The user id
 		#
 		def current_user_id
-			return @uid_hash[:value] if @uid_hash && @uid_hash[:value]
-			
-			uid_cookie = user_id_cookie
-			if uid_cookie
-				return uid_cookie.is_a?(Hash) ? uid_cookie[:value].to_i : uid_cookie.to_i
-			end
+			return cached_user_id   		 if cached_user_id
+			return user_data_from_cookie if user_data_from_cookie
 
 			new_user_id = Lacmus.generate_user_id
 			@uid_hash = build_tuid_cookie(new_user_id)
-			@uid_hash[:value]
+			@uid_hash[:value].split('|').first.to_i
+		end
+
+		def cached_user_id
+			if defined?(__lcm__cached_user_id)
+				__lcm__cached_user_id
+			end
+		end
+
+		def user_data_from_cookie
+			if @uid_hash && @uid_hash[:value]
+				return @uid_hash[:value].split('|').first.to_i
+			end
+			
+			uid_cookie = user_id_cookie
+			if uid_cookie
+				value = uid_cookie.is_a?(Hash) ? uid_cookie[:value] : uid_cookie
+				return value.split('|').first.to_i
+			end
 		end
 
 		# Returns the current experiment the user was exposed to,
@@ -415,7 +433,7 @@ module Lacmus
 		# @return [ Hash ] The generated cookie.
 		#
 		def build_tuid_cookie(user_id)
-			cookies['lc_tuid'] = {:value => user_id, :expires => MAX_COOKIE_TIME}
+			cookies['lc_tuid'] = {:value => "#{user_id}|0", :expires => MAX_COOKIE_TIME}
 		end
 
 		# Returns the value of the user's experiment cookie.
