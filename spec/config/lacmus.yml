@@ -3,4 +3,4 @@ test:
   fast_storage:
     host: 127.0.0.1
     port: 6379
-  experiment_data_store: auto # cookie, redis, auto
+  experiment_data_store: redis # cookie, redis, auto

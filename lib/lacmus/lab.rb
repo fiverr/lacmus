@@ -457,7 +457,7 @@ module Lacmus
 			end
 
 			if use_redis_storage?
-				Lacmus::fast_storage.setex redis_experiment_data_key(current_user_id), COOKIE_AGE_IN_SECONDS, cookie_hash
+				Lacmus::fast_storage.setex redis_experiment_data_key(current_user_id), COOKIE_AGE_IN_SECONDS, cookie_hash[:value]
 			end
 		end
 
@@ -480,9 +480,9 @@ module Lacmus
 		# @return [ String ] The group prefix
 		#
 		def group_prefix
-			return "c" if user_belongs_to_control_group?
-			return "x" if user_belongs_to_empty_slot?
-			return "e"
+			return 'c' if user_belongs_to_control_group?
+			return 'x' if user_belongs_to_empty_slot?
+			return 'e'
 		end
 
 		# Returns whether the user's experiment cookie contains
@@ -494,8 +494,8 @@ module Lacmus
 			value = experiment_data
 			return false if value.nil?
 
-			cookie_prefix = value.split("|")[0]
-			return cookie_prefix == "c"
+			cookie_prefix = value.split('|')[0]
+			return cookie_prefix == 'c'
 		end
 
 		# Returns an array containing all the experiments the user
