@@ -90,7 +90,7 @@ module Lacmus
 			@rendered_control_group = true
 			yield(block)
 		rescue Exception => e
-			lacmus_logger "#{__method__}: Failed to render control version\n" <<
+			lacmus_logger "Failed to render control version.\n" <<
 					 					"experiment_id: #{experiment_id}, Exception: #{e.inspect}"
 		end
 
@@ -118,7 +118,7 @@ module Lacmus
 
 			yield(block)
 		rescue Exception => e
-			lacmus_logger "#{__method__}: Failed to render experiment version\n" <<
+			lacmus_logger "Failed to render experiment version.\n" <<
 					 					"experiment_id: #{experiment_id}, Exception: #{e.inspect}"
 		end
 
@@ -155,7 +155,7 @@ module Lacmus
 			end
 			return experiment_version
 		rescue Exception => e
-			lacmus_logger "#{__method__}: Failed to render simple experiment\n" <<
+			lacmus_logger "Failed to render simple experiment.\n" <<
 										"experiment_id: #{experiment_id}, control_version: #{control_version}\n" <<
 										"experiment_version: #{experiment_version}\n" <<
 										"Exception: #{e.inspect}"
@@ -172,14 +172,36 @@ module Lacmus
 		def mark_kpi!(kpi)
 			Experiment.mark_kpi!(kpi, exposed_experiments_list_for_mark_kpi, user_belongs_to_control_group?)
 		rescue Exception => e
-			lacmus_logger "#{__method__}: Failed to mark kpi: #{kpi}\n" <<
+			lacmus_logger "Failed to mark kpi: #{kpi}.\n" <<
 										"Exception message: #{e.inspect}\n" <<
 										"Exception backtrace: #{e.backtrace[0..10]}"
 		end
 
+		# Assosicate an alternative id with the lacmus user id.
+		#
+		# @note Read AsyncLab to understand why it helps to set it.
+		# 
 		def set_alternative_user_id(alternative_user_id)
 			set_result = AlternativeUser.set_user_id(current_user_id, alternative_user_id)
-			build_tuid_cookie(current_user_id, 1) if set_result
+			if set_result
+				@uid_hash = build_tuid_cookie(current_user_id, 1)
+			end
+		rescue Exception => e
+			lacmus_logger "Failed to set alternative user id for #{alternative_user_id}.\n" <<
+										"Exception message: #{e.inspect}\n" <<
+										"Exception backtrace: #{e.backtrace[0..10]}"
+		end
+
+		# Check if alternative user id was set for this user.
+		#
+		# @return [ Boolean ]
+		#
+		def has_alternative_user_id?
+			user_data_from_cookie.split('|').last == '1'
+		rescue Exception => e
+			lacmus_logger "Failed check if alternative_user_id is defined.\n" <<
+										"Exception message: #{e.inspect}\n" <<
+										"Exception backtrace: #{e.backtrace[0..10]}"
 		end
 
 		# Used to prevent a situation where experiments are not exposed properly
@@ -203,7 +225,9 @@ module Lacmus
 			return '0' if [0,-1].include?(experiment_id)
 			return experiment_id.to_s
 		rescue Exception => e
-			lacmus_logger "#{__method__}: Failed to get lacmus_cache_key, e: #{e.inspect}"
+			lacmus_logger "Failed to get lacmus_cache_key\n" <<
+										"Exception message: #{e.inspect}\n" <<
+										"Exception backtrace: #{e.backtrace[0..10]}"
 		end
 
 		private
@@ -337,8 +361,8 @@ module Lacmus
 		# @return [ Integer ] The user id
 		#
 		def current_user_id
-			return cached_user_id   		 if cached_user_id
-			return user_data_from_cookie if user_data_from_cookie
+			return cached_user_id   	 if cached_user_id
+			return user_id_from_cookie if user_id_from_cookie
 
 			new_user_id = Lacmus.generate_user_id
 			@uid_hash = build_tuid_cookie(new_user_id)
@@ -356,19 +380,27 @@ module Lacmus
 			end
 		end
 
-		# Retrieve the user id value from the user's cookie.
+		def user_id_from_cookie
+			value = user_data_from_cookie
+			value.split('|').first.to_i if value
+		end
+
+		# Retrieve the user data from the user's cookie.
 		#
-		# @return [ Integer ] The user id
+		# @example
+		# 	user_data_from_cookie # => '700|0' 	
+		#
+		# @return [ String ]
 		#
 		def user_data_from_cookie
 			if @uid_hash && @uid_hash[:value]
-				return @uid_hash[:value].split('|').first.to_i
+				return @uid_hash[:value]
 			end
 			
 			uid_cookie = user_id_cookie
 			if uid_cookie
 				value = uid_cookie.is_a?(Hash) ? uid_cookie[:value] : uid_cookie
-				return value.split('|').first.to_i
+				return value
 			end
 		end
 
@@ -490,7 +522,8 @@ module Lacmus
 			end
 
 			if use_redis_storage?
-				Lacmus::fast_storage.setex redis_experiment_data_key(current_user_id), COOKIE_AGE_IN_SECONDS, cookie_hash[:value]
+				key = redis_experiment_data_key(current_user_id)
+				Lacmus::fast_storage.setex key, COOKIE_AGE_IN_SECONDS, cookie_hash[:value]
 			end
 		end
 

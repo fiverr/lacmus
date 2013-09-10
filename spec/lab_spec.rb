@@ -354,4 +354,17 @@ describe Lacmus::Lab, "Lab" do
 
   end # of describe "Functionality for render experiment using block"
 
+	describe 'Functionality of AsyncLab' do
+
+		before do
+			user_id = current_user_id
+			set_alternative_user_id(700)
+		end
+
+		it 'should reflect that alternative user id was set' do
+			expect(has_alternative_user_id?).to be_true
+		end
+
+	end # of describe 'Functionality of AsyncLa'
+
 end # of describe Lacmus::Lab, "Lab"

@@ -15,7 +15,7 @@ describe Lacmus::AlternativeUser, 'AlternativeUser' do
 		
 		before do
 			set_alternative_user_id(700)
-		end  	
+		end
 
   	it 'should modify the user id cookie' do
   		expect(user_id_cookie[:value].split('|').last).to eq('1')
