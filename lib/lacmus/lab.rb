@@ -230,6 +230,17 @@ module Lacmus
 										"Exception backtrace: #{e.backtrace[0..10]}"
 		end
 
+		def available_lacmus_cache_keys
+			default_values   = ['0', '-1']
+			current_values   = SlotMachine.experiment_slot_ids
+			recent_completed = Experiment.recent_completed_experiments
+			[default_values, current_values, recent_completed].flatten.map {|i| i.to_s}.uniq
+		rescue Exception => e
+			lacmus_logger "Failed to get available_lacmus_cache_keys\n" <<
+										"Exception message: #{e.inspect}\n" <<
+										"Exception backtrace: #{e.backtrace[0..10]}"
+		end
+
 		private
 
 		# Returns the experiment slot this user belongs to, starting from 0.

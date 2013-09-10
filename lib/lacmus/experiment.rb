@@ -6,6 +6,8 @@ module Lacmus
 		# with somethong other than a Hash.
 		class InvalidInitValue < StandardError; end
 
+		MAX_RECENT_COMPLETED_EXPS = (60 * 60 * 24 * 7) # 7 days
+
 		# Accessors
 		attr_accessor :id
 		attr_accessor :name
@@ -145,6 +147,7 @@ module Lacmus
 
 			if current_list == :active && list == :completed
 				@end_time = Time.now.utc
+				add_to_completed_experiments_list
 			end
 
 			result = add_to_list(list)
@@ -251,6 +254,21 @@ module Lacmus
 
 		def self.special_experiment_id?(experiment_id)
 			[0, -1].include?(experiment_id)
+		end
+
+		def add_to_completed_experiments_list
+			Lacmus.fast_storage.zadd self.class.recent_completed_experiments_key, Time.now.utc.to_i, @id
+		end
+
+		def self.recent_completed_experiments
+			key   = recent_completed_experiments_key
+			score = Time.now.utc.to_i-MAX_RECENT_COMPLETED_EXPS
+
+			res = Lacmus.fast_storage.multi do
+				Lacmus.fast_storage.zremrangebyscore key, '-inf', score
+				Lacmus.fast_storage.zrangebyscore key, score, '+inf'
+			end
+			res[1]
 		end
 
 		def load_experiment_kpis(is_control = false)
@@ -430,6 +448,10 @@ module Lacmus
 		#
 		def self.list_key_by_type(list)
 			"#{LACMUS_PREFIX}-#{list.to_s}-experiments"
+		end
+
+		def self.recent_completed_experiments_key
+			"#{LACMUS_PREFIX}-recent-completed-exps"
 		end
 
 		def self.kpi_key(experiment_id, is_control = false)

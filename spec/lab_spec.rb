@@ -367,4 +367,12 @@ describe Lacmus::Lab, "Lab" do
 
 	end # of describe 'Functionality of AsyncLa'
 
+	describe 'Lacmus cache keys' do
+
+		it 'should include control group as available cache key' do
+			expect(available_lacmus_cache_keys).to include('0')
+		end
+
+	end # of describe 'Lacmus cache keys'
+
 end # of describe Lacmus::Lab, "Lab"
