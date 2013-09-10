@@ -178,7 +178,8 @@ module Lacmus
 		end
 
 		def set_alternative_user_id(alternative_user_id)
-			AlternativeUser.set_user_id(current_user_id, alternative_user_id)
+			set_result = AlternativeUser.set_user_id(current_user_id, alternative_user_id)
+			build_tuid_cookie(current_user_id, 1) if set_result
 		end
 
 		# Used to prevent a situation where experiments are not exposed properly
@@ -446,8 +447,8 @@ module Lacmus
 		#
 		# @return [ Hash ] The generated cookie.
 		#
-		def build_tuid_cookie(user_id)
-			cookies['lc_tuid'] = {:value => "#{user_id}|0", :expires => MAX_COOKIE_TIME}
+		def build_tuid_cookie(user_id, alternative_user_id_status = 0)
+			cookies['lc_tuid'] = {:value => "#{user_id}|#{alternative_user_id_status}", :expires => MAX_COOKIE_TIME}
 		end
 
 		# Returns the value of the user's experiment cookie.

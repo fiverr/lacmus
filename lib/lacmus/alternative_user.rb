@@ -8,7 +8,8 @@ module Lacmus
 		end
 
 		def set_user_id(user_id, alternative_user_id)
-			Lacmus.fast_storage.setex key(alternative_user_id), ttl, user_id
+			res = Lacmus.fast_storage.setex key(alternative_user_id), ttl, user_id
+			res == 'OK'
 		end
 
 		private
