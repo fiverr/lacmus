@@ -329,9 +329,9 @@ module Lacmus
 			return last_reset.to_i > exposed_at.to_i
 		end
 
-		# Returns the user id from the user's cookie.
-		# If there is no cookie (first visit, cookies expired/removed etc)
-		# then we'll also generate a new cookie and user id.
+		# Returns the user id. If we user id isn't cached nor we
+		# can retrieve it from the cookie - we'll also generate
+		# a new cookie and user id.
 		#
 		# @return [ Integer ] The user id
 		#
@@ -344,12 +344,21 @@ module Lacmus
 			@uid_hash[:value].split('|').first.to_i
 		end
 
+		# Returns the cached user id
+		#
+		# @return [ Integer ] If cached user id was set.
+		# @return [ Nil ] 		If cached user id wasn't set.
+		#
 		def cached_user_id
-			if defined?(__lcm__cached_user_id)
+			if defined?(__lcm__cached_user_id) && __lcm__cached_user_id
 				__lcm__cached_user_id
 			end
 		end
 
+		# Retrieve the user id value from the user's cookie.
+		#
+		# @return [ Integer ] The user id
+		#
 		def user_data_from_cookie
 			if @uid_hash && @uid_hash[:value]
 				return @uid_hash[:value].split('|').first.to_i
@@ -427,6 +436,11 @@ module Lacmus
 		end
 
 		# Generate the user id cookie with the given user_id.
+		# The cookie's value is seperated by '|'. The first part
+		# represents the user id and the second represents whether
+		# alternative user id was set.
+		#
+		# @note Read AsyncLab for more info on alternative user id usage.
 		#
 		# @param [ Integer ] user_id.
 		#
