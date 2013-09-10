@@ -177,8 +177,8 @@ module Lacmus
 										"Exception backtrace: #{e.backtrace[0..10]}"
 		end
 
-		def set_alternative_user_id(user_id, alternative_user_id)
-			AlternativeUser.set_user_id(user_id, alternative_user_id)
+		def set_alternative_user_id(alternative_user_id)
+			AlternativeUser.set_user_id(current_user_id, alternative_user_id)
 		end
 
 		# Used to prevent a situation where experiments are not exposed properly
