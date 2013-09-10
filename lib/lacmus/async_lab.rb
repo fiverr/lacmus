@@ -1,8 +1,8 @@
 # encoding: utf-8
 module Lacmus
 	module AsyncLab
-		extend self
 		extend Lab
+		extend self
 
 		class NotImplemented < StandardError; end
 

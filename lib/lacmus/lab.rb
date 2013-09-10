@@ -53,7 +53,7 @@ module Lacmus
     	# When running under a rails application, we will set
       # all the following methods as helper method. This will
       # allow us to run tests in rails views and helpers.
-			if Settings.running_under_rails? && self == ActionController::Base
+			if Settings.running_under_rails?
     		helper_method :render_control_version
     		helper_method :render_experiment_version
     		helper_method :mark_kpi!
@@ -177,6 +177,18 @@ module Lacmus
 										"Exception backtrace: #{e.backtrace[0..10]}"
 		end
 
+		# Check if alternative user id was set for this user.
+		#
+		# @return [ Boolean ]
+		#
+		def has_alternative_user_id?
+			user_data_from_cookie.split('|').last == '1'
+		rescue Exception => e
+			lacmus_logger "Failed check if alternative_user_id is defined.\n" <<
+										"Exception message: #{e.inspect}\n" <<
+										"Exception backtrace: #{e.backtrace[0..10]}"
+		end
+
 		# Assosicate an alternative id with the lacmus user id.
 		#
 		# @note Read AsyncLab to understand why it helps to set it.
@@ -188,18 +200,6 @@ module Lacmus
 			end
 		rescue Exception => e
 			lacmus_logger "Failed to set alternative user id for #{alternative_user_id}.\n" <<
-										"Exception message: #{e.inspect}\n" <<
-										"Exception backtrace: #{e.backtrace[0..10]}"
-		end
-
-		# Check if alternative user id was set for this user.
-		#
-		# @return [ Boolean ]
-		#
-		def has_alternative_user_id?
-			user_data_from_cookie.split('|').last == '1'
-		rescue Exception => e
-			lacmus_logger "Failed check if alternative_user_id is defined.\n" <<
 										"Exception message: #{e.inspect}\n" <<
 										"Exception backtrace: #{e.backtrace[0..10]}"
 		end
