@@ -182,7 +182,9 @@ module Lacmus
 		# @return [ Boolean ]
 		#
 		def has_alternative_user_id?
-			user_data_from_cookie.split('|').last == '1'
+			cookie = user_data_from_cookie
+			return false unless cookie
+			return cookie.split('|').last == '1'
 		rescue Exception => e
 			lacmus_logger "Failed check if alternative_user_id is defined.\n" <<
 										"Exception message: #{e.inspect}\n" <<
