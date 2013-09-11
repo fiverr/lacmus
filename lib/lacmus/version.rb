@@ -1,4 +1,4 @@
 # encoding: utf-8
 module Lacmus
-  VERSION = "0.0.14"
+  VERSION = "0.2.1"
 end
