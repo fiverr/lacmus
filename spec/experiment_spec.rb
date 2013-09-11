@@ -93,11 +93,17 @@ describe Lacmus::Experiment, "Experiment" do
 	    expect(loaded_experiment.screenshot_url).to eq("new screenshot url")
 	  end
 
+	  it 'should add completed experiment to recent_completed_experiments list' do
+	  	experiment = create_and_activate_experiment
+	  	experiment.deactivate!
+	  	expect(Lacmus::Experiment.recent_completed_experiments).to include(experiment.id.to_s)
+	  end
+
 	end # of describe "Basic functionality"
 
-	describe "Analytics" do
+	describe 'Analytics' do
 
-		it "should calculate conversion correctly for control group user" do
+		it 'should calculate conversion correctly for control group user' do
 	    experiment_id = create_and_activate_experiment.id
 
 	    10.times do 
@@ -115,7 +121,7 @@ describe Lacmus::Experiment, "Experiment" do
 	    expect(experiment_conversion).to eq(0)
 	  end
 
-	  it "should calculate conversion correctly for experiment group user" do
+	  it 'should calculate conversion correctly for experiment group user' do
 	  	experiment_id = create_and_activate_experiment.id
 
 	    9.times do 
@@ -133,6 +139,6 @@ describe Lacmus::Experiment, "Experiment" do
 	    expect(experiment_conversion).to eq(40)
 	  end
 
-	end # of describe "Analytics"
+	end # of describe 'Analytics'
 
 end # of describe Lacmus::Experiment, "Experiment"
