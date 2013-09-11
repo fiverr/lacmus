@@ -11,7 +11,7 @@ module Lacmus
 		def mark_kpi!(kpi, alternative_user_id)
 			user_id = AlternativeUser.get_user_id(alternative_user_id)
 			unless user_id
-				lacmus_logger "Can't mark async kpi: #{kpi} because lacmus id" <<
+				lacmus_logger "Can't mark async kpi: #{kpi} because lacmus id " <<
 										  "wasn't found for #{alternative_user_id}" and return
 			end
 
