@@ -357,12 +357,15 @@ describe Lacmus::Lab, "Lab" do
 	describe 'Functionality of AsyncLab' do
 
 		before do
-			user_id = current_user_id
 			set_alternative_user_id(700)
 		end
 
 		it 'should reflect that alternative user id was set' do
-			expect(has_alternative_user_id?).to be_true
+			experiment_id1 = create_and_activate_experiment.id
+			simple_experiment(experiment_id1, "control", "experiment")
+			Lacmus::AsyncLab.mark_kpi!('new_order', 700)
+
+			expect(get_kpis_for_experiment(experiment_id1, false)['new_order'].to_i).to eq(1)
 		end
 
 	end # of describe 'Functionality of AsyncLa'

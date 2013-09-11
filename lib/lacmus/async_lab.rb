@@ -9,7 +9,6 @@ module Lacmus
 		attr_accessor :__lcm__cached_user_id
 
 		def mark_kpi!(kpi, alternative_user_id)
-binding.pry
 			user_id = AlternativeUser.get_user_id(alternative_user_id)
 			unless user_id
 				lacmus_logger "Can't mark async kpi: #{kpi} because lacmus id" <<
