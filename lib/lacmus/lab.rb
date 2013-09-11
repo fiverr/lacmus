@@ -544,6 +544,7 @@ module Lacmus
 
 		def use_cookie_storage?
 			return false unless defined?(cookies)
+			return false if cookies.nil?
 			['auto', 'cookie'].include?(Settings.experiment_data_store)
 		end
 
