@@ -22,13 +22,13 @@ if Lacmus::Settings.running_under_rails?
 end
 
 module Lacmus
-	extend self
+  extend self
 
-	# Prefix used for the different redis keys.
-	LACMUS_PREFIX = "lcms-#{Settings.env_name}"
+  # Prefix used for the different redis keys.
+  LACMUS_PREFIX = "lcms-#{Settings.env_name}"
 
-	# Store the database connection (redis).
-	@@fast_engine = nil
+  # Store the database connection (redis).
+  @@fast_engine = nil
 
 	# Return the redis connection, acts as the Lacmus' engine.
 	#
