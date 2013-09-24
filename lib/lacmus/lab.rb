@@ -554,7 +554,7 @@ module Lacmus
       ['auto', 'redis'].include?(Settings.experiment_data_store)
     end
 
-    # Returns the group prefix fort he user based on
+    # Returns the group prefix for the user based on
     # which group/experiment he belongs to.
     #
     # @return [ String ] The group prefix
