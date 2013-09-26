@@ -271,6 +271,10 @@ module Lacmus
       res[1]
     end
 
+    def kpi_timeline_data(experiment_id, kpi, is_control = false)
+      Lacmus.fast_storage.zrange timeline_kpi_key(experiment_id, kpi, is_control), 0, -1
+    end
+
     def load_experiment_kpis(is_control = false)
       return {} if self.class.special_experiment_id?(@id)
 
@@ -310,27 +314,26 @@ module Lacmus
       end
     end
 
+    # Records a KPI event for the control group
+    #
+    # @param [ String ] kpi The given name of the KPI to record
+    # @param [ Integer ] experiment_id The id of the experiment
+    # @param [ Integer ] amount The amount of the KPIs hit. Default is 1. 
+    #                    For money related KPIs, this value would be the amount.
+
     def self.mark_control_group_kpi(kpi, experiment_id, amount = 1)
+      # add to the kpi hit count
       Lacmus.fast_storage.zincrby kpi_key(experiment_id, true), amount.to_i, kpi.to_s
+      # add to the hourly count of the timeline data for charting
+      Lacmus.fast_storage.zincrby timeline_kpi_key(experiment_id, kpi, true), amount, current_time_in_hours.to_s
     end
 
     def self.mark_experiment_group_kpi(kpi, experiment_id, amount = 1)
       Lacmus.fast_storage.zincrby kpi_key(experiment_id, false), amount.to_i, kpi.to_s
+      # add to the hourly count of the timeline data for charting
+      Lacmus.fast_storage.zincrby timeline_kpi_key(experiment_id, kpi, false), amount, current_time_in_hours.to_s
     end
 
-    # def self.set_experiment_kpis(experiment_id, kpis = {})
-    #   return if kpis.empty?
-    #   kpis.keys.each do |kpi_name|
-    #     Lacmus.fast_storage.zincrby kpi_key(experiment_id, false), kpis[kpi_name], kpi_name
-    #   end
-    # end
-
-    # def self.set_control_kpis(experiment_id, kpis = {})
-    #   return if kpis.empty?
-    #   kpis.keys.each do |kpi_name|
-    #     Lacmus.fast_storage.zincrby kpi_key(experiment_id, true), kpis[kpi_name], kpi_name
-    #   end
-    # end
 
     def self.track_experiment_exposure(experiment_id, is_control = false)
       if is_control
@@ -426,6 +429,10 @@ module Lacmus
       end
     end
 
+    def self.current_time_in_hours
+      Time.now.utc.to_i / 60 / 60
+    end
+
     private
 
     # Generate a new (and unique) experiment id
@@ -460,6 +467,10 @@ module Lacmus
 
     def self.exposure_key(experiment_id, is_control = false)
       "#{LACMUS_PREFIX}-#{is_control}-counter-#{experiment_id.to_s}"
+    end
+  
+    def self.timeline_kpi_key(experiment_id, kpi, is_control = false)
+      "#{LACMUS_PREFIX}-#{is_control}-timeline-#{experiment_id.to_s}-#{kpi}"
     end
 
   end # of Experiment
