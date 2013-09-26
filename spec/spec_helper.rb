@@ -4,6 +4,9 @@ require 'pry'
 
 # Set the Lacmus root and env constants, used to load
 # the correct yml file for test env.
+module Lacmus
+end
+
 Lacmus::ROOT = "#{Dir.pwd}/spec"
 Lacmus::ENV  = "test"
 

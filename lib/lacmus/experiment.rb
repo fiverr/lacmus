@@ -272,7 +272,7 @@ module Lacmus
     end
 
     def kpi_timeline_data(experiment_id, kpi, is_control = false)
-      Lacmus.fast_storage.zrange timeline_kpi_key(experiment_id, kpi, is_control), 0, -1
+      Lacmus.fast_storage.zrange self.class.timeline_kpi_key(experiment_id, kpi, is_control), 0, -1, :with_scores => true
     end
 
     def load_experiment_kpis(is_control = false)
