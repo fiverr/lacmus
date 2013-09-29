@@ -14,11 +14,8 @@ require 'lacmus/alternative_user'
 require 'lacmus/experiment'
 require 'lacmus/experiment_history'
 
-# When running under rails, include Lacmus::Lab in ActionController::Base.
-# This will initialize Lacmus and make it available under all controllers,
-# views and helpers.
-if Lacmus::Settings.running_under_rails?
-  ActionController::Base.send(:include, Lacmus::Lab)
+if defined?(Rails)
+  require 'lacmus/railtie'
 end
 
 module Lacmus
