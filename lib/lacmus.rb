@@ -35,6 +35,12 @@ module Lacmus
     @@fast_engine ||= Redis.new(Settings.fast_storage)
   end
 
+  # Clear the redis connection
+  #
+  def reset_fast_storage
+  	@@fast_engine = nil
+  end
+
   # Generate a new unique user id for the given user.
   # The counter will reset itself when it reaches 10M.
   #
