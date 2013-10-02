@@ -272,7 +272,11 @@ module Lacmus
     end
 
     def kpi_timeline_data(experiment_id, kpi, is_control = false)
-      Lacmus.fast_storage.zrange timeline_kpi_key(experiment_id, kpi, is_control), 0, -1
+      Lacmus.fast_storage.zrange(self.class.timeline_kpi_key(experiment_id, kpi, is_control), 0, -1, :with_scores => true)
+    end
+
+    def views_timeline_data(experiment_id, kpi, is_control = false)
+      Lacmus.fast_storage.zrange(self.class.timeline_view_key(experiment_id, is_control), 0, -1, :with_scores => true)
     end
 
     def load_experiment_kpis(is_control = false)
@@ -306,41 +310,30 @@ module Lacmus
 
     def self.mark_kpi!(kpi, experiment_ids, is_control = false)
       experiment_ids.each do |experiment_id|
-        if is_control
-          mark_control_group_kpi(kpi, experiment_id)
-        else
-          mark_experiment_group_kpi(kpi, experiment_id)
-        end
+      	mark_kpi_for_group(kpi, experiment_id, is_control)
       end
     end
 
-    # Records a KPI event for the control group
+    # Records a KPI event for the control group. Will increment
+    # the KPI hit count and also the hourly count.
     #
     # @param [ String ] kpi The given name of the KPI to record
     # @param [ Integer ] experiment_id The id of the experiment
+    # @param [ Boolean ] is_control True for control group, false otherwise
     # @param [ Integer ] amount The amount of the KPIs hit. Default is 1. 
     #                    For money related KPIs, this value would be the amount.
-
-    def self.mark_control_group_kpi(kpi, experiment_id, amount = 1)
-      # add to the kpi hit count
-      Lacmus.fast_storage.zincrby kpi_key(experiment_id, true), amount.to_i, kpi.to_s
-      # add to the hourly count of the timeline data for charting
-      Lacmus.fast_storage.zincrby timeline_kpi_key(experiment_id, kpi, true), amount, current_time_in_hours.to_s
+    #
+    def self.mark_kpi_for_group(kpi, experiment_id, is_control = false, amount = 1)
+      Lacmus.fast_storage.zincrby kpi_key(experiment_id, is_control), amount.to_i, kpi.to_s
+      Lacmus.fast_storage.zincrby timeline_kpi_key(experiment_id, kpi, is_control), amount, current_time_in_hours.to_s
     end
 
-    def self.mark_experiment_group_kpi(kpi, experiment_id, amount = 1)
-      Lacmus.fast_storage.zincrby kpi_key(experiment_id, false), amount.to_i, kpi.to_s
-      # add to the hourly count of the timeline data for charting
-      Lacmus.fast_storage.zincrby timeline_kpi_key(experiment_id, kpi, false), amount, current_time_in_hours.to_s
-    end
-
-
+    # Records an exposure event. Will increment the KPI hit count
+    # and also the hourly count.
+    #
     def self.track_experiment_exposure(experiment_id, is_control = false)
-      if is_control
-        Lacmus.fast_storage.incr exposure_key(experiment_id, true)
-      else
-        Lacmus.fast_storage.incr exposure_key(experiment_id)
-      end
+      Lacmus.fast_storage.incr exposure_key(experiment_id, is_control)
+      Lacmus.fast_storage.zincrby timeline_view_key(experiment_id, is_control), 1, current_time_in_hours.to_s
     end
 
     def control_conversion(kpi)
@@ -471,6 +464,10 @@ module Lacmus
   
     def self.timeline_kpi_key(experiment_id, kpi, is_control = false)
       "#{LACMUS_PREFIX}-#{is_control}-timeline-#{experiment_id.to_s}-#{kpi}"
+    end
+
+    def self.timeline_view_key(experiment_id, is_control = false)
+    	"#{LACMUS_PREFIX}-#{is_control}-timeline-#{experiment_id.to_s}"
     end
 
   end # of Experiment

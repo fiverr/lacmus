@@ -124,21 +124,31 @@ describe Lacmus::Experiment, "Experiment" do
     it 'should record kpis for each experiment and each kpi on a timeline' do
       experiment_id = create_and_activate_experiment.id
 
-      build_tuid_cookie(3)
-      expect(user_belongs_to_control_group?).to be_true
-
-      5.times do 
+      2.times do
         simulate_unique_visitor_exposure(experiment_id)
       end
+
+			expect(user_belongs_to_control_group?).to be_true
 
       2.times do
         mark_kpi!('ftb')
       end
 
-
       experiment = Lacmus::Experiment.find(experiment_id)
-      result = experiment.kpi_timeline_data(experiment_id, 'ftb', true)
-      expect(result.to_i).to eq(2)
+      result = experiment.kpi_timeline_data(experiment_id, 'ftb', true)[0]
+      expect(result[1]).to eq(2)
+    end
+
+    it 'should record hourly views' do
+			experiment_id = create_and_activate_experiment.id
+
+      10.times do
+        simulate_unique_visitor_exposure(experiment_id)
+      end
+
+			experiment = Lacmus::Experiment.find(experiment_id)
+      expect(experiment.views_timeline_data(experiment_id, true)[0][1]).to eq(5)
+      expect(experiment.views_timeline_data(experiment_id, false)[0][1]).to eq(5)
     end
 
     it 'should calculate conversion correctly for experiment group user' do
