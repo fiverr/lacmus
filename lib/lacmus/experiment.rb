@@ -271,12 +271,12 @@ module Lacmus
       res[1]
     end
 
-    def kpi_timeline_data(experiment_id, kpi, is_control = false)
-      Lacmus.fast_storage.zrange(self.class.timeline_kpi_key(experiment_id, kpi, is_control), 0, -1, :with_scores => true)
+    def kpi_timeline_data(kpi, is_control = false)
+      Lacmus.fast_storage.zrange(self.class.timeline_kpi_key(@id, kpi, is_control), 0, -1, :with_scores => true)
     end
 
-    def views_timeline_data(experiment_id, kpi, is_control = false)
-      Lacmus.fast_storage.zrange(self.class.timeline_view_key(experiment_id, is_control), 0, -1, :with_scores => true)
+    def views_timeline_data(is_control = false)
+      Lacmus.fast_storage.zrange(self.class.timeline_view_key(@id, is_control), 0, -1, :with_scores => true)
     end
 
     def load_experiment_kpis(is_control = false)

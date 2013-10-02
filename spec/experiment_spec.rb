@@ -135,7 +135,7 @@ describe Lacmus::Experiment, "Experiment" do
       end
 
       experiment = Lacmus::Experiment.find(experiment_id)
-      result = experiment.kpi_timeline_data(experiment_id, 'ftb', true)[0]
+      result = experiment.kpi_timeline_data('ftb', true)[0]
       expect(result[1]).to eq(2)
     end
 
@@ -147,8 +147,8 @@ describe Lacmus::Experiment, "Experiment" do
       end
 
 			experiment = Lacmus::Experiment.find(experiment_id)
-      expect(experiment.views_timeline_data(experiment_id, true)[0][1]).to eq(5)
-      expect(experiment.views_timeline_data(experiment_id, false)[0][1]).to eq(5)
+      expect(experiment.views_timeline_data(true)[0][1]).to eq(5)
+      expect(experiment.views_timeline_data(false)[0][1]).to eq(5)
     end
 
     it 'should calculate conversion correctly for experiment group user' do
