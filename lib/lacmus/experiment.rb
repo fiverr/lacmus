@@ -293,7 +293,7 @@ module Lacmus
 
     	conversion_data = []
     	records_to_return.times do |i|
-    		conversion_data[i] = (sorted_views[i] / sorted_kpis[i])
+    		conversion_data[i] = (sorted_views[i] / sorted_kpis[i]) * 100
     	end
     	conversion_data
     end
