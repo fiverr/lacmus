@@ -139,6 +139,24 @@ describe Lacmus::Experiment, "Experiment" do
       expect(result[1]).to eq(2)
     end
 
+    it 'should calculate conversion timeline data' do
+    	experiment_id = create_and_activate_experiment.id
+
+      2.times do
+        simulate_unique_visitor_exposure(experiment_id)
+      end
+
+			expect(user_belongs_to_control_group?).to be_true
+
+      2.times do
+        mark_kpi!('ftb')
+      end
+
+      experiment = Lacmus::Experiment.find(experiment_id)
+      expect(experiment.conversion_timeline_data('ftb', true)).to eq([0.5])
+      expect(experiment.conversion_timeline_data('ftb', false)).to eq([])
+    end
+
     it 'should record hourly views' do
 			experiment_id = create_and_activate_experiment.id
 

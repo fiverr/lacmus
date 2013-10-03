@@ -279,6 +279,25 @@ module Lacmus
       Lacmus.fast_storage.zrange(self.class.timeline_view_key(@id, is_control), 0, -1, :with_scores => true)
     end
 
+    def conversion_timeline_data(kpi, is_control = false)
+    	views = views_timeline_data(is_control)
+    	kpis  = kpi_timeline_data(kpi, is_control)
+    	return [] if views.empty? || kpis.empty?
+
+    	sorted_views = views.sort {|x,y| x <=> y}.map {|i| i[1]}
+    	sorted_kpis  = kpis.sort {|x,y| x <=> y}.map {|i| i[1]}
+
+    	records_to_return = [sorted_views.size, sorted_kpis.size].min
+    	sorted_views 			= sorted_views.first(records_to_return)
+    	sorted_kpis  			= sorted_kpis.first(records_to_return)
+
+    	conversion_data = []
+    	records_to_return.times do |i|
+    		conversion_data[i] = (sorted_views[i] / sorted_kpis[i])
+    	end
+    	conversion_data
+    end
+
     def load_experiment_kpis(is_control = false)
       return {} if self.class.special_experiment_id?(@id)
 
