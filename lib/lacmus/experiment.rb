@@ -287,13 +287,13 @@ module Lacmus
     	sorted_views = views.sort {|x,y| x <=> y}.map {|i| i[1]}
     	sorted_kpis  = kpis.sort {|x,y| x <=> y}.map {|i| i[1]}
 
-    	records_to_return = [sorted_views.size, sorted_kpis.size].min
-    	sorted_views 			= sorted_views.first(records_to_return)
-    	sorted_kpis  			= sorted_kpis.first(records_to_return)
+    	records_to_return = [sorted_views.size, sorted_kpis.size].min-1
+    	sorted_views 			= sorted_views.last(records_to_return)
+    	sorted_kpis  			= sorted_kpis.last(records_to_return)
 
     	conversion_data = []
     	records_to_return.times do |i|
-    		conversion_data[i] = (sorted_views[i] / sorted_kpis[i]) * 100
+    		conversion_data[i] = (sorted_kpis[i] / sorted_views[i]) * 100
     	end
     	conversion_data
     end

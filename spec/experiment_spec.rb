@@ -153,7 +153,7 @@ describe Lacmus::Experiment, "Experiment" do
       end
 
       experiment = Lacmus::Experiment.find(experiment_id)
-      expect(experiment.conversion_timeline_data('ftb', true)).to eq([50])
+      expect(experiment.conversion_timeline_data('ftb', true)).to eq([])
       expect(experiment.conversion_timeline_data('ftb', false)).to eq([])
     end
 
