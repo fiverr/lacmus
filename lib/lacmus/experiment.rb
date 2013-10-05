@@ -271,33 +271,6 @@ module Lacmus
       res[1]
     end
 
-    def kpi_timeline_data(kpi, is_control = false)
-      Lacmus.fast_storage.zrange(self.class.timeline_kpi_key(@id, kpi, is_control), 0, -1, :with_scores => true)
-    end
-
-    def views_timeline_data(is_control = false)
-      Lacmus.fast_storage.zrange(self.class.timeline_view_key(@id, is_control), 0, -1, :with_scores => true)
-    end
-
-    def conversion_timeline_data(kpi, is_control = false)
-    	views = views_timeline_data(is_control)
-    	kpis  = kpi_timeline_data(kpi, is_control)
-    	return [] if views.empty? || kpis.empty?
-
-    	sorted_views = views.sort {|x,y| x <=> y}.map {|i| i[1]}
-    	sorted_kpis  = kpis.sort {|x,y| x <=> y}.map {|i| i[1]}
-
-    	records_to_return = [sorted_views.size, sorted_kpis.size].min-1
-    	sorted_views 			= sorted_views.last(records_to_return)
-    	sorted_kpis  			= sorted_kpis.last(records_to_return)
-
-    	conversion_data = []
-    	records_to_return.times do |i|
-    		conversion_data[i] = ((sorted_kpis[i] / sorted_views[i]) * 100).round(4)
-    	end
-    	conversion_data
-    end
-
     def load_experiment_kpis(is_control = false)
       return {} if self.class.special_experiment_id?(@id)
 
@@ -386,6 +359,44 @@ module Lacmus
     def performance_perc(kpi)
       return if control_conversion(kpi) == 0
       ((experiment_conversion(kpi) / control_conversion(kpi)) - 1) * 100
+    end
+
+    def timeline_performance_perc(kpi)
+    	performance_array = []
+    	experiment_array 	= conversion_timeline_data(kpi, false)
+    	control_array 		= conversion_timeline_data(kpi, true)
+
+    	experiment_array.each_with_index do |exp_conversion, i|
+    		performance_array << (((exp_conversion.to_f / control_array[i]) - 1) * 100).round(4)
+    	end
+    	performance_array
+    end
+
+    def kpi_timeline_data(kpi, is_control = false)
+      Lacmus.fast_storage.zrange(self.class.timeline_kpi_key(@id, kpi, is_control), 0, -1, :with_scores => true)
+    end
+
+    def views_timeline_data(is_control = false)
+      Lacmus.fast_storage.zrange(self.class.timeline_view_key(@id, is_control), 0, -1, :with_scores => true)
+    end
+
+    def conversion_timeline_data(kpi, is_control = false)
+    	views = views_timeline_data(is_control)
+    	kpis  = kpi_timeline_data(kpi, is_control)
+    	return [] if views.empty? || kpis.empty?
+
+    	sorted_views = views.sort {|x,y| x <=> y}.map {|i| i[1]}
+    	sorted_kpis  = kpis.sort {|x,y| x <=> y}.map {|i| i[1]}
+
+    	records_to_return = [sorted_views.size, sorted_kpis.size].min-1
+    	sorted_views 			= sorted_views.last(records_to_return)
+    	sorted_kpis  			= sorted_kpis.last(records_to_return)
+
+    	conversion_data = []
+    	records_to_return.times do |i|
+    		conversion_data[i] = ((sorted_kpis[i] / sorted_views[i]) * 100).round(4)
+    	end
+    	conversion_data
     end
 
     def remaining_participants_needed(kpi)
