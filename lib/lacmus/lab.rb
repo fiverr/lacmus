@@ -63,8 +63,9 @@ module Lacmus
     end
 
     # Set the user's cookies to expire based on the max_experiment_duration_in_days value.
-    COOKIE_AGE_IN_SECONDS = (60 * 60 * 24 * Settings.max_experiment_duration_in_days)
-    MAX_COOKIE_TIME       = Time.now.utc + COOKIE_AGE_IN_SECONDS
+    COOKIE_AGE_IN_SECONDS     = (60 * 60 * 24 * Settings.max_experiment_duration_in_days)
+    MAX_COOKIE_TIME           = Time.now.utc + COOKIE_AGE_IN_SECONDS
+    PREVIEW_EXPERIMENT_PARAM  = 'render-variation'
 
     # Execute a ruby block for control group users. The block will also
     # be executed if the users belongs to another experiment or to an
@@ -80,6 +81,11 @@ module Lacmus
     # @yieldreturn [ &block ] if the user doesn't belonged to the experiment.
     #
     def render_control_version(experiment_id, &block)
+      if preview_control_variation?
+        yield(block) and return
+      end
+
+      return if preview_experiment_variation?
       return if user_belongs_to_experiment?(experiment_id)
 
       control_group = user_belongs_to_control_group?
@@ -106,7 +112,12 @@ module Lacmus
     #   user belongs to another experiment or user doesn't belong to any experiment.
     # @yieldreturn [ &block ] if user belongs to the experiment and it's active.
     #
-    def render_experiment_version(experiment_id, &block)  
+    def render_experiment_version(experiment_id, &block)
+      if preview_experiment_variation?
+        yield(block) and return
+      end
+
+      return if preview_control_variation?
       return if @rendered_control_group
       return if user_belongs_to_empty_slot?
       return if user_belongs_to_control_group?
@@ -139,6 +150,9 @@ module Lacmus
     #   and the experiment_version param for experiment users.
     #
     def simple_experiment(experiment_id, control_version, experiment_version)
+      return control_version if preview_control_variation?
+      return experiment_version if preview_experiment_variation?
+
       empty_slot = user_belongs_to_empty_slot?
       control_group = user_belongs_to_control_group?
       belongs_to_experiment = user_belongs_to_experiment?(experiment_id)
@@ -277,6 +291,24 @@ module Lacmus
     #
     def experiment_for_user
       @user_experiment ||= SlotMachine.get_experiment_id_from_slot(slot_for_user)
+    end
+
+    # Checks if user requested to view experiment variation by force for 
+    # preview purposes.
+    # 
+    # @return [ Boolean ] True if user requested to view experiment variation
+    #
+    def preview_experiment_variation?
+      defined?(params) && params[PREVIEW_EXPERIMENT_PARAM] == 'experiment'
+    end
+
+    # Checks if user requested to view control version by force for 
+    # preview purposes.
+    # 
+    # @return [ Boolean ] True if user requested to view control version
+    #
+    def preview_control_variation?
+      defined?(params) && params[PREVIEW_EXPERIMENT_PARAM] == 'control'
     end
 
     # Convenience method to check if user belongs to control group.

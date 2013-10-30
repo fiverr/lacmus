@@ -16,6 +16,7 @@ module Lacmus
     attr_accessor :end_time
     attr_accessor :status
     attr_accessor :screenshot_url
+    attr_accessor :url
     attr_accessor :errors
 
     attr_reader :control_kpis
@@ -34,6 +35,7 @@ module Lacmus
       @screenshot_url       = options[:screenshot_url]
       @start_time           = options[:start_time]
       @end_time             = options[:end_time]
+      @url                  = options[:url]
       @control_kpis         = load_experiment_kpis(true)
       @experiment_kpis      = load_experiment_kpis
       @control_analytics    = load_experiment_analytics(true)
