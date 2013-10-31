@@ -367,7 +367,7 @@ module Lacmus
     	control_array 		= conversion_timeline_data(kpi, true)
 
     	experiment_array.each_with_index do |exp_conversion, i|
-    		performance_array << (((exp_conversion.to_f / control_array[i]) - 1) * 100).round(4)
+    		performance_array << (((exp_conversion / control_array[i]) - 1) * 100).round(4)
     	end
     	performance_array
     end
@@ -385,16 +385,16 @@ module Lacmus
     	kpis  = kpi_timeline_data(kpi, is_control)
     	return [] if views.empty? || kpis.empty?
 
-    	sorted_views = views.sort {|x,y| x <=> y}.map {|i| i[1]}
-    	sorted_kpis  = kpis.sort {|x,y| x <=> y}.map {|i| i[1]}
+    	views_timestamps  = views.map {|i| i[0]}
+    	kpis_timestamps   = kpis.map {|i| i[0]}
+    	shared_timestamps = views_timestamps & kpis_timestamps
 
-    	records_to_return = [sorted_views.size, sorted_kpis.size].min-1
-    	sorted_views 			= sorted_views.last(records_to_return)
-    	sorted_kpis  			= sorted_kpis.last(records_to_return)
+    	sorted_views = views.select {|i| shared_timestamps.include?(i[0])}.sort {|x,y| x <=> y}.map {|i| i[1]}
+    	sorted_kpis  = kpis.select {|i| shared_timestamps.include?(i[0])}.sort {|x,y| x <=> y}.map {|i| i[1]}
 
     	conversion_data = []
-    	records_to_return.times do |i|
-    		conversion_data[i] = ((sorted_kpis[i] / sorted_views[i]) * 100).round(4)
+    	sorted_views.size.times do |i|
+    		conversion_data[i] = ((sorted_kpis[i].to_f / sorted_views[i].to_f) * 100).round(4)
     	end
     	conversion_data
     end
