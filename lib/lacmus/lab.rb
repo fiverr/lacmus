@@ -150,7 +150,7 @@ module Lacmus
     #   and the experiment_version param for experiment users.
     #
     def simple_experiment(experiment_id, control_version, experiment_version)
-      return control_version if preview_control_variation?
+      return control_version 		if preview_control_variation?
       return experiment_version if preview_experiment_variation?
 
       empty_slot = user_belongs_to_empty_slot?

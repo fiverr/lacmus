@@ -11,12 +11,14 @@ module Lacmus
     # Accessors
     attr_accessor :id
     attr_accessor :name
+    attr_accessor :type
     attr_accessor :description
     attr_accessor :start_time
     attr_accessor :end_time
     attr_accessor :status
     attr_accessor :screenshot_url
     attr_accessor :url
+    attr_accessor :tracked_kpis_list
     attr_accessor :errors
 
     attr_reader :control_kpis
@@ -30,12 +32,14 @@ module Lacmus
 
       @id                   = options[:id]
       @status               = options[:status]
+      @type                 = options[:type]
       @name                 = options[:name]
       @description          = options[:description]
       @screenshot_url       = options[:screenshot_url]
       @start_time           = options[:start_time]
       @end_time             = options[:end_time]
       @url                  = options[:url]
+      @tracked_kpis_list    = options[:tracked_kpis_list]
       @control_kpis         = load_experiment_kpis(true)
       @experiment_kpis      = load_experiment_kpis
       @control_analytics    = load_experiment_analytics(true)
@@ -404,7 +408,7 @@ module Lacmus
     def remaining_participants_needed(kpi)
       total_required = required_participants_needed_for(kpi).to_i
       return 0 if total_required < 0
-      
+
       result = total_required - experiment_analytics[:exposures].to_i
       (result < 0) ? 0 : result.to_i
     end
