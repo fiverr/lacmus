@@ -27,7 +27,8 @@ module Lacmus
     attr_accessor :status
     attr_accessor :screenshot_url
     attr_accessor :url
-    attr_accessor :tracked_kpis_list
+    attr_accessor :global_tracked_kpis
+    attr_accessor :experiment_tracked_kpis
     attr_accessor :errors
 
     attr_reader :control_kpis
@@ -39,21 +40,22 @@ module Lacmus
       raise InvalidInitValue unless options.is_a?(Hash)
       options = ActiveSupport::HashWithIndifferentAccess.new(options)
 
-      @id                   = options[:id]
-      @status               = options[:status]
-      @type                 = options[:type]
-      @name                 = options[:name]
-      @description          = options[:description]
-      @screenshot_url       = options[:screenshot_url]
-      @start_time           = options[:start_time]
-      @end_time             = options[:end_time]
-      @url                  = options[:url]
-      @tracked_kpis_list    = options[:tracked_kpis_list] || []
-      @control_kpis         = load_experiment_kpis(true)
-      @experiment_kpis      = load_experiment_kpis
-      @control_analytics    = load_experiment_analytics(true)
-      @experiment_analytics = load_experiment_analytics
-      @errors               = []
+      @id                   	 = options[:id]
+      @status               	 = options[:status]
+      @type                 	 = options[:type]
+      @name                 	 = options[:name]
+      @description          	 = options[:description]
+      @screenshot_url       	 = options[:screenshot_url]
+      @start_time           	 = options[:start_time]
+      @end_time             	 = options[:end_time]
+      @url                  	 = options[:url]
+      @global_tracked_kpis 		 = options[:global_tracked_kpis] || []
+      @experiment_tracked_kpis = options[:experiment_tracked_kpis] || []
+      @control_kpis         	 = load_experiment_kpis(true)
+      @experiment_kpis      	 = load_experiment_kpis
+      @control_analytics    	 = load_experiment_analytics(true)
+      @experiment_analytics 	 = load_experiment_analytics
+      @errors               	 = []
     end
 
     # Create a new experiment and save it.
