@@ -48,7 +48,7 @@ module Lacmus
       @start_time           = options[:start_time]
       @end_time             = options[:end_time]
       @url                  = options[:url]
-      @tracked_kpis_list    = options[:tracked_kpis_list]
+      @tracked_kpis_list    = options[:tracked_kpis_list] || []
       @control_kpis         = load_experiment_kpis(true)
       @experiment_kpis      = load_experiment_kpis
       @control_analytics    = load_experiment_analytics(true)
