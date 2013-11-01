@@ -19,10 +19,6 @@ module Lacmus
     # one for control and one empty.
     DEFAULT_SLOT_HASH = [CONTROL_SLOT_HASH, EMPTY_SLOT_HASH]
 
-    # Represents (in seconds) how long the cache is going to be valid.
-    # Default to 60 means we'll query the database only once a minute.
-    $__lcms__worker_cache_interval = 60
-
     # Represents the last time (as integer) the attributes were cached.
     # Combined with $__lcms__worker_cache_interval, we can determine when
     # the cache is not valid anymore.

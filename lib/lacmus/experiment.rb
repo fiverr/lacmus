@@ -7,6 +7,15 @@ module Lacmus
     class InvalidInitValue < StandardError; end
 
     MAX_RECENT_COMPLETED_EXPS = (60 * 60 * 24 * 7) # 7 days
+    EXPERIMENT_TYPES 					= [:active, :local, :pending, :completed]
+
+    # Represents the last time (as integer) the local active
+    # experiments was cached.
+    $__lcms__local_experiments_loaded_at_as_int = 0
+
+    # Represents all the local active experiments, used
+    # to reduce amout of database hits.
+    $__lcms__local_experiments = nil
 
     # Accessors
     attr_accessor :id
@@ -143,15 +152,15 @@ module Lacmus
     def move_to_list(list)
       current_list = @status
 
-      if current_list == :pending && list == :active
+      if current_list == :pending && active_list?(list)
         @start_time = Time.now.utc
       end
 
-      if current_list == :completed && list == :active
+      if current_list == :completed && active_list?(list)
         @end_time = nil
       end
 
-      if current_list == :active && list == :completed
+      if active_list?(current_list) && list == :completed
         @end_time = Time.now.utc
         add_to_completed_experiments_list
       end
@@ -187,8 +196,12 @@ module Lacmus
     # 
     # @return [ Boolean ] True on success, false on failure.
     #
+    # @todo based based on type..
     def activate!
-      move_to_list(:active)
+    	case type.to_s.downcase
+    	when 'global' then move_to_list(:active)
+    	when 'local'  then move_to_list(:local)
+    	end
     end
 
     # Deactive an experiment, changing it's status to completed
@@ -213,7 +226,7 @@ module Lacmus
 
     def self.find(experiment_id)
       experiment = nil
-      [:active, :pending, :completed].each do |list|
+      EXPERIMENT_TYPES.each do |list|
         break if experiment
         experiment = find_in_list(experiment_id, list)
       end
@@ -237,6 +250,23 @@ module Lacmus
       experiments_array
     end
 
+    def active_list?(list)
+    	[:active, :local].include?(list.to_sym)
+    end
+
+    def self.active_local_experiments
+    	if local_experiments_cache_valid?
+        return $__lcms__local_experiments
+      end
+
+      $__lcms__local_experiments_loaded_at_as_int = Time.now.utc.to_i
+      $__lcms__local_experiments 								  = find_in_list(:local)
+    end
+
+    def self.local_experiments_cache_valid?
+    	$__lcms__local_experiments_loaded_at_as_int.to_i > (Time.now.utc.to_i - $__lcms__worker_cache_interval)
+    end
+
     def to_hash
       attrs_hash = {}
       instance_variables.each do |var|
@@ -254,6 +284,7 @@ module Lacmus
       self.class.active?(@id)
     end
 
+    # @todo add || local experiments include?
     def self.active?(experiment_id)
       SlotMachine.experiment_slot_ids.include?(experiment_id.to_i)
     end
@@ -432,6 +463,7 @@ module Lacmus
     # warning - all experiments, including running ones, 
     # and completed ones will be permanently lost!
     #
+    # @todo nuke local too
     def self.nuke_all_experiments
       find_all_in_list(:pending).each do |experiment|
         experiment.nuke_experiment!
@@ -452,6 +484,7 @@ module Lacmus
       SlotMachine.reset_slots_to_defaults
     end
 
+    # @todo restart local too
     def self.restart_all_active_experiments
       find_all_in_list(:active).each do |experiment|
         experiment.restart!

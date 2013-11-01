@@ -21,6 +21,10 @@ end
 module Lacmus
   extend self
 
+  # Represents (in seconds) how long the cache is going to be valid.
+  # Default to 60 means we'll query the database only once a minute.
+  $__lcms__worker_cache_interval = 60
+
   # Prefix used for the different redis keys.
   LACMUS_PREFIX = "lcms-#{Settings.env_name}"
 
