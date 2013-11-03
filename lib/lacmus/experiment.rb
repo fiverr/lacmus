@@ -74,7 +74,8 @@ module Lacmus
     def self.create!(options = {})
       attrs = {
         id:     generate_experiment_id,
-        status: :pending
+        status: :pending,
+        type: 	:global
       }.merge(options)
 
       exp_obj = new(attrs)
@@ -198,9 +199,9 @@ module Lacmus
     # @return [ Boolean ] True on success, false on failure.
     #
     def activate!
-    	case type.to_s.downcase
-    	when 'global' then move_to_list(:active)
-    	when 'local'  then move_to_list(:local)
+    	case type.to_sym.downcase
+    	when :global then move_to_list(:active)
+    	when :local  then move_to_list(:local)
     	end
     end
 
@@ -260,7 +261,7 @@ module Lacmus
       end
 
       $__lcms__local_experiments_loaded_at_as_int = Time.now.utc.to_i
-      $__lcms__local_experiments 								  = find_in_list(:local)
+      $__lcms__local_experiments 								  = find_all_in_list(:local)
     end
 
     def self.local_experiments_ids
