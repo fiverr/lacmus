@@ -453,7 +453,7 @@ module Lacmus
     def restart!
       nuke_experiment!
       new_start_time = Time.now.utc
-      @start_time = new_start_time
+      @start_time 	 = new_start_time
       save
 
       if active?
@@ -465,11 +465,9 @@ module Lacmus
       self.class.nuke_experiment(@id)
     end
 
-    # clears all experiments and resets the slots.
+    # Clears all experiments and resets the slots.
     # warning - all experiments, including running ones, 
     # and completed ones will be permanently lost!
-    #
-    # @todo nuke local too
     def self.nuke_all_experiments
       find_all_in_list(:pending).each do |experiment|
         experiment.nuke_experiment!
@@ -479,20 +477,28 @@ module Lacmus
         experiment.nuke_experiment!
       end
 
+      find_all_in_list(:local).each do |experiment|
+        experiment.nuke_experiment!
+      end
+
       find_all_in_list(:completed).each do |experiment|
         experiment.nuke_experiment!
       end
 
       Lacmus.fast_storage.del list_key_by_type(:pending)
       Lacmus.fast_storage.del list_key_by_type(:active)
+      Lacmus.fast_storage.del list_key_by_type(:local)
       Lacmus.fast_storage.del list_key_by_type(:completed)
 
       SlotMachine.reset_slots_to_defaults
     end
 
-    # @todo restart local too
     def self.restart_all_active_experiments
       find_all_in_list(:active).each do |experiment|
+        experiment.restart!
+      end
+
+      find_all_in_list(:local).each do |experiment|
         experiment.restart!
       end
     end
