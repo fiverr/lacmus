@@ -45,8 +45,8 @@ module Lacmus
     # @return [ String ] The environment name
     #
     def env_name
-      return Lacmus::ENV if defined?(Lacmus::ENV)
-      return Rails.env   if defined?(Rails)
+    	return Rails.env   		 if defined?(Rails)
+    	return ENV['RACK_ENV'] if defined?(ENV) && ENV['RACK_ENV']
       return 'development'
     end
 
@@ -58,8 +58,8 @@ module Lacmus
     # @return [ String ] The root location
     #
     def root
-      return Lacmus::ROOT if defined?(Lacmus::ROOT)
-      return Rails.root   if defined?(Rails) && Rails.root
+      return Rails.root if defined?(Rails) && Rails.root
+      return ENV['PWD'] if defined?(ENV) 	 && ENV['PWD']
       return Dir.pwd
     end
 
