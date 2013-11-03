@@ -148,16 +148,18 @@ describe Lacmus::Lab, "Lab" do
       build_tuid_cookie(3)
       expect(user_belongs_to_control_group?).to be_false
       simple_experiment(experiment_id, "control", "experiment")
-      expect(control_group_prefix?).to be_false
+p "experiment_data: #{experiment_data}"
+      expect(group_prefix_for_experiment(experiment_id)).to eq('e')
 
       Lacmus::SlotMachine.resize_and_reset_slot_array(3)
       Lacmus::SlotMachine.reset_worker_cache
 
       experiment_id2 = create_and_activate_experiment.id
       expect(user_belongs_to_control_group?).to be_true
-
+binding.pry
       simple_experiment(experiment_id2, "control", "experiment")
-      expect(control_group_prefix?).to be_true
+p "experiment_data: #{experiment_data}"
+      expect(group_prefix_for_experiment(experiment_id2)).to eq('c')
     end
 
     it "should mark KPI for active experiment" do

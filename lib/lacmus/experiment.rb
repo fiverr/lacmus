@@ -272,6 +272,11 @@ module Lacmus
     	$__lcms__local_experiments_loaded_at_as_int.to_i > (Time.now.utc.to_i - $__lcms__worker_cache_interval)
     end
 
+    def self.start_time_for_local_exp(experiment_id)
+    	experiment_obj = local_experiments.select {|experiment| experiment.id == experiment_id.to_i }
+    	experiment_obj.start_time if experiment_obj
+    end
+
     def to_hash
       attrs_hash = {}
       instance_variables.each do |var|
@@ -452,12 +457,11 @@ module Lacmus
 
     def restart!
       nuke_experiment!
-      new_start_time = Time.now.utc
-      @start_time 	 = new_start_time
+      @start_time = Time.now.utc
       save
 
       if active?
-        SlotMachine.update_start_time_for_experiment(@id, new_start_time.to_i)
+        SlotMachine.update_start_time_for_experiment(@id, @start_time.to_i)
       end
     end
 

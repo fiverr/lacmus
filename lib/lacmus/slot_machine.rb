@@ -279,11 +279,9 @@ module Lacmus
     #
     # @return [ Integer ] The last experiment reset time.
     #
-    def last_experiment_reset(experiment_id)
+    def start_time(experiment_id)
       experiment_hash = experiment_slots.select{|i| i[:experiment_id].to_s == experiment_id.to_s}[0]
-      return if experiment_hash.nil?
-
-      experiment_hash[:start_time_as_int]
+      experiment_hash[:start_time_as_int] if experiment_hash
     end
 
     # Reset the worker's cache so next time experiment slots

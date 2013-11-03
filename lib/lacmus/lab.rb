@@ -168,12 +168,13 @@ module Lacmus
         mark_experiment_view(experiment_id)
       end
       return experiment_version
-    rescue Exception => e
-      lacmus_logger "Failed to render simple experiment.\n" <<
-                    "experiment_id: #{experiment_id}, control_version: #{control_version}\n" <<
-                    "experiment_version: #{experiment_version}\n" <<
-                    "Exception: #{e.inspect}"
-      control_version
+    # @todo uncomment this..
+    # rescue Exception => e
+    #   lacmus_logger "Failed to render simple experiment.\n" <<
+    #                 "experiment_id: #{experiment_id}, control_version: #{control_version}\n" <<
+    #                 "experiment_version: #{experiment_version}\n" <<
+    #                 "Exception: #{e.inspect}"
+    #   control_version
     end
 
     # Mark the given kpi for all the experiments this user was exposed to.
@@ -236,11 +237,12 @@ module Lacmus
     #
     # @todo add support for preview option (query params)
     def lacmus_cache_key
-      return '0' unless @uid_hash || user_id_cookie
+      return '0|0' unless @uid_hash || user_id_cookie
 
-      experiment_id = SlotMachine.get_experiment_id_from_slot(slot_for_user).to_i
-      return '0' if [0,-1].include?(experiment_id)
-      return experiment_id.to_s
+      experiment_id 		= SlotMachine.get_experiment_id_from_slot(slot_for_user).to_i
+      global_exp_prefix = [0,-1].include?(experiment_id) ? 0 : experiment_id
+      local_exp_prefix  = ''
+      "#{global_exp_prefix}|#{local_exp_prefix}"
     rescue Exception => e
       lacmus_logger "Failed to get lacmus_cache_key\n" <<
                     "Exception message: #{e.inspect}\n" <<
@@ -292,6 +294,13 @@ module Lacmus
     #
     def experiment_for_user
       @user_experiment ||= SlotMachine.get_experiment_id_from_slot(slot_for_user)
+    end
+
+    # @todo doc
+    # @todo get all local exps
+    def all_experiments_for_user
+    	global = experiment_for_user
+    	local  = ''
     end
 
     # Checks if user requested to view experiment variation by force for 
@@ -393,7 +402,7 @@ module Lacmus
     #
     def server_reset_requested?(experiment_id)
       exposed_at = exposed_experiments.select{|i| i.keys.first == experiment_id.to_s}[0][experiment_id.to_s]
-      last_reset = SlotMachine.last_experiment_reset(experiment_id)
+      last_reset = SlotMachine.start_time(experiment_id)
 
       return false if exposed_at.nil?
       return false if last_reset.nil?
@@ -562,6 +571,10 @@ module Lacmus
       experiment_data_from_redis
     end
 
+    def parsed_experiment_data
+    	experiment_data.split('|').map {|experiment| experiment.split(';')}
+    end
+
     def set_experiment_data(cookie_hash)
       if use_cookie_storage?
         cookies['lc_xpmnt'] = cookie_hash
@@ -590,12 +603,14 @@ module Lacmus
     # Returns the group prefix for the user based on
     # which group/experiment he belongs to.
     #
+    # @return [ Nil ]    User was never exposed to the experiment
     # @return [ String ] The group prefix
     #
-    def group_prefix
-      return 'c' if user_belongs_to_control_group?
-      return 'x' if user_belongs_to_empty_slot?
-      return 'e'
+    def group_prefix_for_experiment(experiment_id)
+    	data = parsed_experiment_data
+    	exp  = data.select {|experiment| experiment[1] == experiment_id.to_s}
+    	return unless exp
+    	exp.first[0]
     end
 
     # Returns whether the user's experiment cookie contains
@@ -603,6 +618,7 @@ module Lacmus
     #
     # @return [ Boolean ] True if contains the prefix, false otherwise.
     #
+    # @rodo remove this method
     def control_group_prefix?
       value = experiment_data
       return false if value.nil?
@@ -709,22 +725,44 @@ module Lacmus
     #
     # @return [ Hash ] The content of the updated user's experiment cookie
     #
+    # @todo support backwards..
+    #
     def add_exposure_to_cookie(experiment_id, is_control = false)
-      new_data = "#{experiment_id};#{Time.now.utc.to_i}"
+    	prefix 	 		 = is_control ? 'c' : 'e'
+      new_data 		 = "#{prefix};#{experiment_id};#{Time.now.utc.to_i}"
+      current_data = clean_experiment_data
+      full_data 	 = current_data.empty? ? new_data : "#{current_data}|#{new_data}"
+      set_experiment_data({:value => full_data, :expires => MAX_COOKIE_TIME})
+    end
 
-      if cookies['lc_xpmnt'] && exposed_experiments_list.include?(experiment_id.to_i)
-        remove_exposure_from_cookie(experiment_id)
-      end
+    # @todo add doc
+    def clean_experiment_data
+    	return '' unless experiment_data
+    	valid_exposures = []
+    	parsed_experiment_data.each do |prefix, experiment_id, exposed_at_as_int|
+    		if valid_exposure?(experiment_id, exposed_at_as_int)
+    			valid_exposures << "#{prefix};#{experiment_id};#{exposed_at_as_int}"
+    		end
+    	end
+    	valid_exposures.join('|')
+    end
 
-      # control_group_prefix? is checked because user can switch groups
-      # when experiment_slots is changed. If user was belonged to experiment group
-      # and now is control - we need to recreate his cookie.
-      if is_control && cookies['lc_xpmnt'] && control_group_prefix?
-        data = "#{experiment_data}|#{new_data}"
-      else
-        data = "#{group_prefix}|#{new_data}"
-      end
-      set_experiment_data({:value => data, :expires => MAX_COOKIE_TIME})
+    # @todo add doc
+    def valid_exposure?(experiment_id, exposed_at_as_int)
+    	if active_global_experiment?(experiment_id)
+    		return exposed_at_as_int.to_i >= SlotMachine.start_time(experiment_id)
+  		elsif active_local_experiment?(experiment_id)
+  			return exposed_at_as_int.to_i >= Experiment.start_time_for_local_exp(experiment_id)
+  		end
+  		return false
+    end
+
+    def active_global_experiment?(experiment_id)
+    	SlotMachine.experiment_slot_ids.include?(experiment_id.to_i)
+    end
+
+    def active_local_experiment?(experiment_id)
+    	Experiment.local_experiments_ids.include?(experiment_id.to_i)
     end
 
     # Remove the given experiment_id from the user's experiment
@@ -737,6 +775,7 @@ module Lacmus
     #
     # @return [ Hash ] The content of the updated user's experiment cookie
     #
+    # @todo remove?
     def remove_exposure_from_cookie(experiment_id)
       return unless experiment_data
       exps_array          = experiment_data.split('|')
