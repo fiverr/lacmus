@@ -234,6 +234,7 @@ module Lacmus
     #
     # @return [ String ] The cache key based on which group the user belongs to.
     #
+    # @todo add support for preview option (query params)
     def lacmus_cache_key
       return '0' unless @uid_hash || user_id_cookie
 

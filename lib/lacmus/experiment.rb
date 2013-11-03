@@ -197,7 +197,6 @@ module Lacmus
     # 
     # @return [ Boolean ] True on success, false on failure.
     #
-    # @todo based based on type..
     def activate!
     	case type.to_s.downcase
     	when 'global' then move_to_list(:active)
@@ -255,13 +254,17 @@ module Lacmus
     	[:active, :local].include?(list.to_sym)
     end
 
-    def self.active_local_experiments
+    def self.local_experiments
     	if local_experiments_cache_valid?
         return $__lcms__local_experiments
       end
 
       $__lcms__local_experiments_loaded_at_as_int = Time.now.utc.to_i
       $__lcms__local_experiments 								  = find_in_list(:local)
+    end
+
+    def self.local_experiments_ids
+    	local_experiments.map {|experiment| experiment.id}
     end
 
     def self.local_experiments_cache_valid?
@@ -287,7 +290,8 @@ module Lacmus
 
     # @todo add || local experiments include?
     def self.active?(experiment_id)
-      SlotMachine.experiment_slot_ids.include?(experiment_id.to_i)
+      SlotMachine.experiment_slot_ids.include?(experiment_id.to_i) ||
+      	local_experiments_ids.include?(experiment_id.to_i)
     end
 
     def self.special_experiment_id?(experiment_id)
