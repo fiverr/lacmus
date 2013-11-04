@@ -63,9 +63,9 @@ module Lacmus
     end
 
     # Set the user's cookies to expire based on the max_experiment_duration_in_days value.
-    COOKIE_AGE_IN_SECONDS     = (60 * 60 * 24 * Settings.max_experiment_duration_in_days)
-    MAX_COOKIE_TIME           = Time.now.utc + COOKIE_AGE_IN_SECONDS
-    PREVIEW_EXPERIMENT_PARAM  = 'render-variation'
+    COOKIE_AGE_IN_SECONDS    = (60 * 60 * 24 * Settings.max_experiment_duration_in_days)
+    MAX_COOKIE_TIME          = Time.now.utc + COOKIE_AGE_IN_SECONDS
+    PREVIEW_EXPERIMENT_PARAM = 'render-variation'
 
     # Execute a ruby block for control group users. The block will also
     # be executed if the users belongs to another experiment or to an
@@ -335,6 +335,7 @@ module Lacmus
     #
     # @return [ Boolean ] True if belongs to the given experiment, false otherwise.
     #
+    # @todo check if belongs to local exp
     def user_belongs_to_experiment?(experiment_id)
       experiment_for_user == experiment_id
     end
