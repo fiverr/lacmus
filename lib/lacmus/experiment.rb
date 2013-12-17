@@ -369,6 +369,7 @@ module Lacmus
     	control_array 		= conversion_timeline_data(kpi, true)
 
     	experiment_array.each_with_index do |exp_conversion, i|
+    		next unless exp_conversion && control_array[i]
     		performance_array << (((exp_conversion.to_f / control_array[i]) - 1) * 100).round(4)
     	end
     	performance_array
