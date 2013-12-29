@@ -80,25 +80,25 @@ module Lacmus
     # @return [ Nil ] if the user belongs to the experiment.
     # @yieldreturn [ &block ] if the user doesn't belonged to the experiment.
     #
-    def render_control_version(experiment_id, &block)
-      if preview_control_variation?
-        yield(block) and return
-      end
+    # def render_control_version(experiment_id, &block)
+    #   if preview_control_variation?
+    #     yield(block) and return
+    #   end
 
-      return if preview_experiment_variation?
-      return if user_belongs_to_experiment?(experiment_id)
+    #   return if preview_experiment_variation?
+    #   return if user_belongs_to_experiment?(experiment_id)
 
-      control_group = user_belongs_to_control_group?
-      if control_group && should_mark_experiment_view?(experiment_id)
-        mark_experiment_view(experiment_id)
-      end
+    #   control_group = user_belongs_to_control_group?
+    #   if control_group && should_mark_experiment_view?(experiment_id)
+    #     mark_experiment_view(experiment_id)
+    #   end
 
-      @rendered_control_group = true
-      yield(block)
-    rescue Exception => e
-      lacmus_logger "Failed to render control version.\n" <<
-                    "experiment_id: #{experiment_id}, Exception: #{e.inspect}"
-    end
+    #   @rendered_control_group = true
+    #   yield(block)
+    # rescue Exception => e
+    #   lacmus_logger "Failed to render control version.\n" <<
+    #                 "experiment_id: #{experiment_id}, Exception: #{e.inspect}"
+    # end
 
     # Execute a ruby block for users belogned to this experiment only, assuming the
     # experiment is active.
@@ -112,26 +112,26 @@ module Lacmus
     #   user belongs to another experiment or user doesn't belong to any experiment.
     # @yieldreturn [ &block ] if user belongs to the experiment and it's active.
     #
-    def render_experiment_version(experiment_id, &block)
-      if preview_experiment_variation?
-        yield(block) and return
-      end
+    # def render_experiment_version(experiment_id, &block)
+    #   if preview_experiment_variation?
+    #     yield(block) and return
+    #   end
 
-      return if preview_control_variation?
-      return if @rendered_control_group
-      return if user_belongs_to_empty_slot?
-      return if user_belongs_to_control_group?
-      return if !user_belongs_to_experiment?(experiment_id)
+    #   return if preview_control_variation?
+    #   return if @rendered_control_group
+    #   return if user_belongs_to_empty_slot?
+    #   return if user_belongs_to_control_group?
+    #   return if !user_belongs_to_experiment?(experiment_id)
 
-      if should_mark_experiment_view?(experiment_id)
-        mark_experiment_view(experiment_id)
-      end
+    #   if should_mark_experiment_view?(experiment_id)
+    #     mark_experiment_view(experiment_id)
+    #   end
 
-      yield(block)
-    rescue Exception => e
-      lacmus_logger "Failed to render experiment version.\n" <<
-                    "experiment_id: #{experiment_id}, Exception: #{e.inspect}"
-    end
+    #   yield(block)
+    # rescue Exception => e
+    #   lacmus_logger "Failed to render experiment version.\n" <<
+    #                 "experiment_id: #{experiment_id}, Exception: #{e.inspect}"
+    # end
 
     # Render one of the given params: control_version or experiment_version
     # based on which group this user belongs to.
@@ -149,31 +149,74 @@ module Lacmus
     # @return The control_version param for control users
     #   and the experiment_version param for experiment users.
     #
-    def simple_experiment(experiment_id, control_version, experiment_version)
-      return control_version if preview_control_variation?
-      return experiment_version if preview_experiment_variation?
+    # def simple_experiment(experiment_id, control_version, experiment_version)
+    #   return control_version if preview_control_variation?
+    #   return experiment_version if preview_experiment_variation?
 
-      empty_slot = user_belongs_to_empty_slot?
-      control_group = user_belongs_to_control_group?
-      belongs_to_experiment = user_belongs_to_experiment?(experiment_id)
+    #   empty_slot = user_belongs_to_empty_slot?
+    #   control_group = user_belongs_to_control_group?
+    #   belongs_to_experiment = user_belongs_to_experiment?(experiment_id)
 
-      if empty_slot || control_group || !belongs_to_experiment
-        if control_group && should_mark_experiment_view?(experiment_id)
-          mark_experiment_view(experiment_id)
-        end
-        return control_version
+    #   if empty_slot || control_group || !belongs_to_experiment
+    #     if control_group && should_mark_experiment_view?(experiment_id)
+    #       mark_experiment_view(experiment_id)
+    #     end
+    #     return control_version
+    #   end
+
+    #   if should_mark_experiment_view?(experiment_id)
+    #     mark_experiment_view(experiment_id)
+    #   end
+    #   return experiment_version
+    # rescue Exception => e
+    #   lacmus_logger "Failed to render simple experiment.\n" <<
+    #                 "experiment_id: #{experiment_id}, control_version: #{control_version}\n" <<
+    #                 "experiment_version: #{experiment_version}\n" <<
+    #                 "Exception: #{e.inspect}"
+    #   control_version
+    # end
+
+    # belongs to active experiment variation - do nothing
+    # belongs to inactive experiment variation - render
+    # belongs to control variation - render and mark
+    #
+    def render_be_control_variation(experiment_id, &block)
+    	return if user_belongs_to_active_varitation?(experiment_id)
+
+      if user_belongs_to_control_group? && should_mark_experiment_view?(experiment_id, variation)
+        mark_experiment_view(experiment_id, 'a')
       end
 
-      if should_mark_experiment_view?(experiment_id)
-        mark_experiment_view(experiment_id)
-      end
-      return experiment_version
+      @rendered_control_group = true
+      yield(block)
     rescue Exception => e
-      lacmus_logger "Failed to render simple experiment.\n" <<
-                    "experiment_id: #{experiment_id}, control_version: #{control_version}\n" <<
-                    "experiment_version: #{experiment_version}\n" <<
-                    "Exception: #{e.inspect}"
-      control_version
+      lacmus_logger "Failed to render control variation.\n" <<
+                    "experiment_id: #{experiment_id}, Exception: #{e.inspect}"
+    end
+
+    def render_be_experiment_variation(experiment_id, variation, &block)
+      return if @rendered_control_group
+      return if !user_belongs_to_variation?(experiment_id, variation)
+
+      if should_mark_experiment_view?(experiment_id, variation)
+        mark_experiment_view(experiment_id, variation)
+      end
+
+      yield(block)
+    rescue Exception => e
+      lacmus_logger "Failed to render experiment variation.\n" <<
+                    "experiment_id: #{experiment_id}, variation: #{variation}, Exception: #{e.inspect}"
+    end
+
+    # belongs to variation and active - render and mark view
+    # any other scenario - do nothing
+    #
+    def render_fe_variation(experiment_id, variation, &block)
+    end
+
+    # @todo
+    #
+    def user_belongs_to_active_varitation?(experiment_id)
     end
 
     # Mark the given kpi for all the experiments this user was exposed to.
@@ -348,6 +391,8 @@ module Lacmus
     #
     # @return [ Boolean ] True if should mark the view, false otherwise.
     #
+    # @todo check this method after finishing the render variations methods
+    #
     def should_mark_experiment_view?(experiment_id)
       return false if !Experiment.active?(experiment_id)
       return true  if exposed_experiments.empty?
@@ -368,7 +413,9 @@ module Lacmus
     #
     # @param [ Integer ] experiment_id The experiment id
     #
-    def mark_experiment_view(experiment_id)
+    # @todo check this method after finishing the render variations methods
+    #
+    def mark_experiment_view(experiment_id, variation)
       is_control = user_belongs_to_control_group?
 
       add_exposure_to_cookie(experiment_id, is_control)
