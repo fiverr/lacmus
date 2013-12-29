@@ -29,239 +29,239 @@ describe Lacmus::Lab, "Lab" do
 
   # ----------------------------------------------------------------
 
-  describe "Basic slots functionality" do
+  # describe "Basic slots functionality" do
 
-    it "should place different slots for different user ids" do
-      create_and_activate_experiment.id
-      first_user_slot = slot_for_user
+  #   it "should place different slots for different user ids" do
+  #     create_and_activate_experiment.id
+  #     first_user_slot = slot_for_user
 
-      clear_cookies_and_uid_hash
-      second_user_slot = slot_for_user
+  #     clear_cookies_and_uid_hash
+  #     second_user_slot = slot_for_user
 
-      clear_cookies_and_uid_hash
-      third_user_slot = slot_for_user
+  #     clear_cookies_and_uid_hash
+  #     third_user_slot = slot_for_user
       
-      expect(first_user_slot).not_to eq(second_user_slot)
-      expect(third_user_slot).to eq(first_user_slot)
-    end
+  #     expect(first_user_slot).not_to eq(second_user_slot)
+  #     expect(third_user_slot).to eq(first_user_slot)
+  #   end
 
-  end # of describe "Basic slots functionality"
+  # end # of describe "Basic slots functionality"
 
-  describe "Functionality for render simple experiment using string" do
+  # describe "Functionality for render simple experiment using string" do
 
-    it "should render different results for control and experiment groups" do
-      experiment_id = create_and_activate_experiment.id
-      result1 = simple_experiment(experiment_id, "control", "experiment")
-      expect(user_belongs_to_control_group?).to be_false
-      expect(result1).to eq("experiment")
-      clear_cookies_and_uid_hash
+  #   it "should render different results for control and experiment groups" do
+  #     experiment_id = create_and_activate_experiment.id
+  #     result1 = simple_experiment(experiment_id, "control", "experiment")
+  #     expect(user_belongs_to_control_group?).to be_false
+  #     expect(result1).to eq("experiment")
+  #     clear_cookies_and_uid_hash
 
-      result2 = simple_experiment(experiment_id, "control", "experiment")
-      expect(user_belongs_to_control_group?).to be_true
-      expect(result2).to eq("control")
-    end
+  #     result2 = simple_experiment(experiment_id, "control", "experiment")
+  #     expect(user_belongs_to_control_group?).to be_true
+  #     expect(result2).to eq("control")
+  #   end
 
-    it "should render control group if experiment isn't active" do
-      experiment_id = create_experiment.id
-      result = simple_experiment(experiment_id, "control", "experiment")
-      expect(result).to eq("control")
-    end
+  #   it "should render control group if experiment isn't active" do
+  #     experiment_id = create_experiment.id
+  #     result = simple_experiment(experiment_id, "control", "experiment")
+  #     expect(result).to eq("control")
+  #   end
 
-    it "should render experiment before and after cookie expired" do
-      experiment_id = create_and_activate_experiment.id
-      expect(user_belongs_to_control_group?).to be_false
+  #   it "should render experiment before and after cookie expired" do
+  #     experiment_id = create_and_activate_experiment.id
+  #     expect(user_belongs_to_control_group?).to be_false
 
-      result = simple_experiment(experiment_id, "control", "experiment")
-      expect(result).to eq("experiment")
-      clear_cookies_and_uid_hash
+  #     result = simple_experiment(experiment_id, "control", "experiment")
+  #     expect(result).to eq("experiment")
+  #     clear_cookies_and_uid_hash
 
-      result2 = simple_experiment(experiment_id, "control", "experiment")
-      expect(result2).to eq("control")
-    end
+  #     result2 = simple_experiment(experiment_id, "control", "experiment")
+  #     expect(result2).to eq("control")
+  #   end
 
-    it "should not increment exposure counters for a pending or completed experiment" do
-      exp_obj = create_experiment
-      exp_id  = exp_obj.id
+  #   it "should not increment exposure counters for a pending or completed experiment" do
+  #     exp_obj = create_experiment
+  #     exp_id  = exp_obj.id
 
-      simple_experiment(exp_id, "control", "experiment")
-      pending_experiment_exposures = get_exposures_for_experiment(exp_id) + get_exposures_for_experiment(exp_id, true)
-      expect(pending_experiment_exposures).to eq(0)
+  #     simple_experiment(exp_id, "control", "experiment")
+  #     pending_experiment_exposures = get_exposures_for_experiment(exp_id) + get_exposures_for_experiment(exp_id, true)
+  #     expect(pending_experiment_exposures).to eq(0)
 
-      reset_instance_variables
-      exp_obj.activate!
-      simple_experiment(exp_id, "control", "experiment")
-      active_experiment_exposures = get_exposures_for_experiment(exp_id) + get_exposures_for_experiment(exp_id, true)
-      expect(active_experiment_exposures).to eq(1)
+  #     reset_instance_variables
+  #     exp_obj.activate!
+  #     simple_experiment(exp_id, "control", "experiment")
+  #     active_experiment_exposures = get_exposures_for_experiment(exp_id) + get_exposures_for_experiment(exp_id, true)
+  #     expect(active_experiment_exposures).to eq(1)
 
-      reset_instance_variables
-      exp_obj.deactivate!
-      simple_experiment(exp_id, "control", "experiment")
-      completed_experiment_exposures = get_exposures_for_experiment(exp_id) + get_exposures_for_experiment(exp_id, true)
-      expect(completed_experiment_exposures).to eq(1)
-    end
+  #     reset_instance_variables
+  #     exp_obj.deactivate!
+  #     simple_experiment(exp_id, "control", "experiment")
+  #     completed_experiment_exposures = get_exposures_for_experiment(exp_id) + get_exposures_for_experiment(exp_id, true)
+  #     expect(completed_experiment_exposures).to eq(1)
+  #   end
 
-    it "should increment views for exeperiments the user was exposed to (control group)" do
-      Lacmus::SlotMachine.resize_and_reset_slot_array(3)
-      Lacmus::SlotMachine.reset_worker_cache
+  #   it "should increment views for exeperiments the user was exposed to (control group)" do
+  #     Lacmus::SlotMachine.resize_and_reset_slot_array(3)
+  #     Lacmus::SlotMachine.reset_worker_cache
 
-      experiment_id1 = create_and_activate_experiment.id
-      experiment_id2 = create_and_activate_experiment.id
-      build_tuid_cookie(3)
-      expect(user_belongs_to_control_group?).to be_true
+  #     experiment_id1 = create_and_activate_experiment.id
+  #     experiment_id2 = create_and_activate_experiment.id
+  #     build_tuid_cookie(3)
+  #     expect(user_belongs_to_control_group?).to be_true
 
-      simple_experiment(experiment_id1, "control", "experiment")
-      expect(Lacmus::Experiment.find(experiment_id1).control_analytics[:exposures].to_i).to eq(1)
-      expect(Lacmus::Experiment.find(experiment_id2).control_analytics[:exposures].to_i).to eq(0)
+  #     simple_experiment(experiment_id1, "control", "experiment")
+  #     expect(Lacmus::Experiment.find(experiment_id1).control_analytics[:exposures].to_i).to eq(1)
+  #     expect(Lacmus::Experiment.find(experiment_id2).control_analytics[:exposures].to_i).to eq(0)
 
-      simple_experiment(experiment_id2, "control", "experiment")
-      expect(Lacmus::Experiment.find(experiment_id1).control_analytics[:exposures].to_i).to eq(1)
-      expect(Lacmus::Experiment.find(experiment_id2).control_analytics[:exposures].to_i).to eq(1)
-    end
+  #     simple_experiment(experiment_id2, "control", "experiment")
+  #     expect(Lacmus::Experiment.find(experiment_id1).control_analytics[:exposures].to_i).to eq(1)
+  #     expect(Lacmus::Experiment.find(experiment_id2).control_analytics[:exposures].to_i).to eq(1)
+  #   end
 
-    it "should increment views for exeperiments the user was exposed to (non-control group)" do
-      Lacmus::SlotMachine.resize_and_reset_slot_array(3)
-      Lacmus::SlotMachine.reset_worker_cache
+  #   it "should increment views for exeperiments the user was exposed to (non-control group)" do
+  #     Lacmus::SlotMachine.resize_and_reset_slot_array(3)
+  #     Lacmus::SlotMachine.reset_worker_cache
 
-      experiment_id1 = create_and_activate_experiment.id
-      experiment_id2 = create_and_activate_experiment.id
-      expect(user_belongs_to_control_group?).to be_false
-      expect(user_belongs_to_experiment?(experiment_id1)).to be_true
+  #     experiment_id1 = create_and_activate_experiment.id
+  #     experiment_id2 = create_and_activate_experiment.id
+  #     expect(user_belongs_to_control_group?).to be_false
+  #     expect(user_belongs_to_experiment?(experiment_id1)).to be_true
 
-      simple_experiment(experiment_id1, "control", "experiment")
-      expect(Lacmus::Experiment.find(experiment_id1).experiment_analytics[:exposures].to_i).to eq(1)
-      expect(Lacmus::Experiment.find(experiment_id2).experiment_analytics[:exposures].to_i).to eq(0)
+  #     simple_experiment(experiment_id1, "control", "experiment")
+  #     expect(Lacmus::Experiment.find(experiment_id1).experiment_analytics[:exposures].to_i).to eq(1)
+  #     expect(Lacmus::Experiment.find(experiment_id2).experiment_analytics[:exposures].to_i).to eq(0)
 
-      expect(Lacmus::Experiment.find(experiment_id1).control_analytics[:exposures].to_i).to eq(0)
-      expect(Lacmus::Experiment.find(experiment_id2).control_analytics[:exposures].to_i).to eq(0)
+  #     expect(Lacmus::Experiment.find(experiment_id1).control_analytics[:exposures].to_i).to eq(0)
+  #     expect(Lacmus::Experiment.find(experiment_id2).control_analytics[:exposures].to_i).to eq(0)
 
-      simple_experiment(experiment_id2, "control", "experiment")
-      expect(Lacmus::Experiment.find(experiment_id1).experiment_analytics[:exposures].to_i).to eq(1)
-      expect(Lacmus::Experiment.find(experiment_id2).experiment_analytics[:exposures].to_i).to eq(0)
+  #     simple_experiment(experiment_id2, "control", "experiment")
+  #     expect(Lacmus::Experiment.find(experiment_id1).experiment_analytics[:exposures].to_i).to eq(1)
+  #     expect(Lacmus::Experiment.find(experiment_id2).experiment_analytics[:exposures].to_i).to eq(0)
 
-      expect(Lacmus::Experiment.find(experiment_id1).control_analytics[:exposures].to_i).to eq(0)
-      expect(Lacmus::Experiment.find(experiment_id2).control_analytics[:exposures].to_i).to eq(0)
-    end
+  #     expect(Lacmus::Experiment.find(experiment_id1).control_analytics[:exposures].to_i).to eq(0)
+  #     expect(Lacmus::Experiment.find(experiment_id2).control_analytics[:exposures].to_i).to eq(0)
+  #   end
 
-    it "should change the cookie's prefix is user switched to control group after resize" do
-      experiment_id = create_and_activate_experiment.id
+  #   it "should change the cookie's prefix is user switched to control group after resize" do
+  #     experiment_id = create_and_activate_experiment.id
 
-      build_tuid_cookie(3)
-      expect(user_belongs_to_control_group?).to be_false
-      simple_experiment(experiment_id, "control", "experiment")
-      expect(control_group_prefix?).to be_false
+  #     build_tuid_cookie(3)
+  #     expect(user_belongs_to_control_group?).to be_false
+  #     simple_experiment(experiment_id, "control", "experiment")
+  #     expect(control_group_prefix?).to be_false
 
-      Lacmus::SlotMachine.resize_and_reset_slot_array(3)
-      Lacmus::SlotMachine.reset_worker_cache
+  #     Lacmus::SlotMachine.resize_and_reset_slot_array(3)
+  #     Lacmus::SlotMachine.reset_worker_cache
 
-      experiment_id2 = create_and_activate_experiment.id
-      expect(user_belongs_to_control_group?).to be_true
+  #     experiment_id2 = create_and_activate_experiment.id
+  #     expect(user_belongs_to_control_group?).to be_true
 
-      simple_experiment(experiment_id2, "control", "experiment")
-      expect(control_group_prefix?).to be_true
-    end
+  #     simple_experiment(experiment_id2, "control", "experiment")
+  #     expect(control_group_prefix?).to be_true
+  #   end
 
-    it "should mark KPI for active experiment" do
-      experiment = create_and_activate_experiment
-      experiment_id = experiment.id
+  #   it "should mark KPI for active experiment" do
+  #     experiment = create_and_activate_experiment
+  #     experiment_id = experiment.id
 
-      simple_experiment(experiment_id, "control", "experiment")
-      exposures = get_exposures_for_experiment(experiment_id)
-      expect(exposures).to eq(1)
-      mark_kpi!('ftb')
-      mark_kpi!('ftb')
-      expect(get_kpis_for_experiment(experiment_id)['ftb'].to_i).to eq(2)
-    end
+  #     simple_experiment(experiment_id, "control", "experiment")
+  #     exposures = get_exposures_for_experiment(experiment_id)
+  #     expect(exposures).to eq(1)
+  #     mark_kpi!('ftb')
+  #     mark_kpi!('ftb')
+  #     expect(get_kpis_for_experiment(experiment_id)['ftb'].to_i).to eq(2)
+  #   end
 
-    it "should not mark KPI for deactivated experiment" do
-      experiment_id1 = create_and_activate_experiment.id
-      simulate_unique_visitor_exposure(experiment_id1)
-      Lacmus::Experiment.find(experiment_id1).deactivate!
+  #   it "should not mark KPI for deactivated experiment" do
+  #     experiment_id1 = create_and_activate_experiment.id
+  #     simulate_unique_visitor_exposure(experiment_id1)
+  #     Lacmus::Experiment.find(experiment_id1).deactivate!
 
-      mark_kpi!('ftb')
-      expect(get_kpis_for_experiment(experiment_id1)['ftb'].to_i).to eq(0)
-    end
+  #     mark_kpi!('ftb')
+  #     expect(get_kpis_for_experiment(experiment_id1)['ftb'].to_i).to eq(0)
+  #   end
 
-    it "should mark KPIs and exposures to exposed experiments" do
-      Lacmus::SlotMachine.resize_and_reset_slot_array(4)
-      Lacmus::SlotMachine.reset_worker_cache
+  #   it "should mark KPIs and exposures to exposed experiments" do
+  #     Lacmus::SlotMachine.resize_and_reset_slot_array(4)
+  #     Lacmus::SlotMachine.reset_worker_cache
       
-      experiment_id1 = create_and_activate_experiment.id
-      experiment_id2 = create_and_activate_experiment.id
+  #     experiment_id1 = create_and_activate_experiment.id
+  #     experiment_id2 = create_and_activate_experiment.id
 
-      simulate_unique_visitor_exposure(experiment_id1)
-      simulate_unique_visitor_exposure(experiment_id1)
-      simulate_unique_visitor_exposure(experiment_id1)
+  #     simulate_unique_visitor_exposure(experiment_id1)
+  #     simulate_unique_visitor_exposure(experiment_id1)
+  #     simulate_unique_visitor_exposure(experiment_id1)
 
-      mark_kpi!('ftb')
-      mark_kpi!('ftb')
-      mark_kpi!('ftb')
+  #     mark_kpi!('ftb')
+  #     mark_kpi!('ftb')
+  #     mark_kpi!('ftb')
 
-      expect(get_exposures_for_experiment(experiment_id1).to_i).to eq(3)
-      expect(get_exposures_for_experiment(experiment_id2).to_i).to eq(0)
+  #     expect(get_exposures_for_experiment(experiment_id1).to_i).to eq(3)
+  #     expect(get_exposures_for_experiment(experiment_id2).to_i).to eq(0)
 
-      expect(get_kpis_for_experiment(experiment_id1)['ftb'].to_i).to eq(3)
-      expect(get_kpis_for_experiment(experiment_id2)['ftb'].to_i).to eq(0)
-    end
+  #     expect(get_kpis_for_experiment(experiment_id1)['ftb'].to_i).to eq(3)
+  #     expect(get_kpis_for_experiment(experiment_id2)['ftb'].to_i).to eq(0)
+  #   end
 
-    it "should not mark kpi for control group user after reset" do
-      experiment_id1 = create_and_activate_experiment.id
-      expect(user_belongs_to_control_group?).to be_false
-      simulate_unique_visitor_exposure(experiment_id1)
+  #   it "should not mark kpi for control group user after reset" do
+  #     experiment_id1 = create_and_activate_experiment.id
+  #     expect(user_belongs_to_control_group?).to be_false
+  #     simulate_unique_visitor_exposure(experiment_id1)
 
-      sleep 1 # sleeping to force incrementation of experiment's start time 
-      Lacmus::Experiment.find(experiment_id1).restart!
+  #     sleep 1 # sleeping to force incrementation of experiment's start time 
+  #     Lacmus::Experiment.find(experiment_id1).restart!
 
-      mark_kpi!('ftb')
-      expect(get_kpis_for_experiment(experiment_id1)['ftb'].to_i).to eq(0)
-    end
+  #     mark_kpi!('ftb')
+  #     expect(get_kpis_for_experiment(experiment_id1)['ftb'].to_i).to eq(0)
+  #   end
 
-    it "should not mark kpi for experiment group user after reset" do
-      experiment_id1 = create_and_activate_experiment.id
-      build_tuid_cookie(2)
-      expect(user_belongs_to_control_group?).to be_true
-      simulate_unique_visitor_exposure(experiment_id1)
+  #   it "should not mark kpi for experiment group user after reset" do
+  #     experiment_id1 = create_and_activate_experiment.id
+  #     build_tuid_cookie(2)
+  #     expect(user_belongs_to_control_group?).to be_true
+  #     simulate_unique_visitor_exposure(experiment_id1)
 
-      sleep 1 # sleeping to force incrementation of experiment's start time 
-      Lacmus::Experiment.find(experiment_id1).restart!
+  #     sleep 1 # sleeping to force incrementation of experiment's start time 
+  #     Lacmus::Experiment.find(experiment_id1).restart!
 
-      mark_kpi!('ftb')
-      expect(get_kpis_for_experiment(experiment_id1, true)['ftb'].to_i).to eq(0)
-    end
+  #     mark_kpi!('ftb')
+  #     expect(get_kpis_for_experiment(experiment_id1, true)['ftb'].to_i).to eq(0)
+  #   end
 
-    it "should mark kpi for control group user after restart and re-exposure" do
-      experiment_id = create_and_activate_experiment.id
-      build_tuid_cookie(2)
-      expect(user_belongs_to_control_group?).to be_true
-      simple_experiment(experiment_id, "control", "experiment")
+  #   it "should mark kpi for control group user after restart and re-exposure" do
+  #     experiment_id = create_and_activate_experiment.id
+  #     build_tuid_cookie(2)
+  #     expect(user_belongs_to_control_group?).to be_true
+  #     simple_experiment(experiment_id, "control", "experiment")
 
-      sleep 1 # sleeping to force incrementation of experiment's start time 
-      Lacmus::Experiment.find(experiment_id).restart!
-      simple_experiment(experiment_id, "control", "experiment")
+  #     sleep 1 # sleeping to force incrementation of experiment's start time 
+  #     Lacmus::Experiment.find(experiment_id).restart!
+  #     simple_experiment(experiment_id, "control", "experiment")
 
-      mark_kpi!('ftb')
-      expect(get_kpis_for_experiment(experiment_id, true)['ftb'].to_i).to eq(1)
-    end
+  #     mark_kpi!('ftb')
+  #     expect(get_kpis_for_experiment(experiment_id, true)['ftb'].to_i).to eq(1)
+  #   end
 
-    it "should mark kpi for experiment group user after restart and re-exposure" do
-      experiment_id = create_and_activate_experiment.id
-      expect(user_belongs_to_control_group?).to be_false
-      simple_experiment(experiment_id, "control", "experiment")
+  #   it "should mark kpi for experiment group user after restart and re-exposure" do
+  #     experiment_id = create_and_activate_experiment.id
+  #     expect(user_belongs_to_control_group?).to be_false
+  #     simple_experiment(experiment_id, "control", "experiment")
 
-      sleep 1 # sleeping to force incrementation of experiment's start time 
-      Lacmus::Experiment.find(experiment_id).restart!
-      simple_experiment(experiment_id, "control", "experiment")
+  #     sleep 1 # sleeping to force incrementation of experiment's start time 
+  #     Lacmus::Experiment.find(experiment_id).restart!
+  #     simple_experiment(experiment_id, "control", "experiment")
 
-      mark_kpi!('ftb')
-      expect(get_kpis_for_experiment(experiment_id)['ftb'].to_i).to eq(1)
-    end
+  #     mark_kpi!('ftb')
+  #     expect(get_kpis_for_experiment(experiment_id)['ftb'].to_i).to eq(1)
+  #   end
 
-    it "should update the experiment cookie" do
-      # cookie_value_before_restart = experiment_cookie_value
-      # cookie_value_after_restart = experiment_cookie_value
-      # expect(cookie_value_before_restart).not_to eq(cookie_value_after_restart)
-    end
+  #   it "should update the experiment cookie" do
+  #     # cookie_value_before_restart = experiment_cookie_value
+  #     # cookie_value_after_restart = experiment_cookie_value
+  #     # expect(cookie_value_before_restart).not_to eq(cookie_value_after_restart)
+  #   end
 
-  end # of describe "Functionality for render simple experiment using string"
+  # end # of describe "Functionality for render simple experiment using string"
 
   describe "Functionality for render experiment using block" do
 

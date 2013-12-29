@@ -408,7 +408,7 @@ module Lacmus
     end
 
     # Mark the experiment view by updating the user's cookie with the given
-    # experiment_id, add the experiment to the user's experiment history log
+    # experiment_id and variation, add the experiment to the user's experiment history log
     # and update the exposures count for the experiment.
     #
     # @param [ Integer ] experiment_id The experiment id
@@ -420,7 +420,7 @@ module Lacmus
 
       add_exposure_to_cookie(experiment_id, is_control)
       Experiment.track_experiment_exposure(experiment_id, is_control)
-      ExperimentHistory.add(current_user_id, experiment_id)
+      ExperimentHistory.add(current_user_id, experiment_id, variation)
     end
 
     # Checks if the user should be re-exposed to the given
