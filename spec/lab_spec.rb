@@ -265,13 +265,13 @@ describe Lacmus::Lab, "Lab" do
 
   describe "Functionality for render experiment using block" do
 
-    it "should render different results for control and experiment groups" do
+    it "should render different results for control and experiment variations" do
       experiment_id = create_and_activate_experiment.id
       block1 = Proc.new {|i| "text for block1"}
       block2 = Proc.new {|i| "text for block2"}
 
-      expect(user_belongs_to_control_group?).to be_false
-      result1 = render_control_version(experiment_id, &block1)
+      expect(user_belongs_to_control_variation?(experiment_id)).to be_false
+      result1 = render_be_control_variation(experiment_id, &block1)
       expect(result1).to be_nil
 
       reset_instance_variables

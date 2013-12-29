@@ -184,7 +184,7 @@ module Lacmus
     	return if user_belongs_to_active_varitation?(experiment_id)
 
       if user_belongs_to_control_group? && should_mark_experiment_view?(experiment_id, variation)
-        mark_experiment_view(experiment_id, 'a')
+        mark_experiment_view(experiment_id, :a)
       end
 
       @rendered_control_group = true
@@ -302,20 +302,12 @@ module Lacmus
 
     private
 
-    # Returns the experiment slot this user belongs to, starting from 0.
-    # @note This is not the actual experiment id, just the slot.
+    # Returns the variation this user belongs to.
     #
-    # @example User belongs to the second slot, which holds experiment id = 3
-    #   current_user_id = 1; SlotMachine.experiment_slot_ids = [0, 3]
+    # @example User belongs to :b variation of experiment id = 10.
+    #   variation_for_user(10) # => :b
     #
-    #   Lacmus.slot_for_user # => 1
-    #
-    # @example User belongs to the first slot, which is the control group
-    #   current_user_id = 2; SlotMachine.experiment_slot_ids = [0, 3]
-    #
-    #   Lacmus.slot_for_user # => 0
-    #
-    def slot_for_user
+    def variation_for_user(experiment_id)
       current_user_id % SlotMachine.experiment_slot_ids.count
     end
 
@@ -358,7 +350,7 @@ module Lacmus
     #
     # @return [ Boolean ] True if belongs to control, false otherwise.
     #
-    def user_belongs_to_control_group?
+    def user_belongs_to_control_variation?(experiment_id)
       slot_for_user == 0
     end
 
