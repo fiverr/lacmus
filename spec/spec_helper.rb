@@ -67,6 +67,10 @@ EXPERIMENT_SCREENSHOT_URL = "http://google.com"
     reset_active_experiments_cache
   end
 
+  def bump_user_id
+  	Lacmus.generate_user_id
+  end
+
   def simulate_unique_visitor_exposure(experiment_id)
     clear_cookies_and_uid_hash
     simple_experiment(experiment_id, "control", "experiment")

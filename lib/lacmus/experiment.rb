@@ -57,6 +57,8 @@ module Lacmus
     #
     # @return [ Experiment ] The newly created experiment object
     #
+    # @todo new experiment should have 2 variations, 50% each
+    #
     def self.create!(options = {})
       attrs = {
         id:     generate_experiment_id,
@@ -86,11 +88,12 @@ module Lacmus
     # @return True if added successfully, false otherwise. 
     #
     def add_to_list(list)
-      if list.to_sym == :active
-        available_slot_id = SlotMachine.find_available_slot
-        return false if available_slot_id.nil?
-        SlotMachine.place_experiment_in_slot(@id, available_slot_id)
-      end
+    	# @todo update the traffic allocator instead of slotmachine
+      # if list.to_sym == :active
+      #   available_slot_id = SlotMachine.find_available_slot
+      #   return false if available_slot_id.nil?
+      #   SlotMachine.place_experiment_in_slot(@id, available_slot_id)
+      # end
 
       @status = list.to_sym
       save
@@ -429,6 +432,8 @@ module Lacmus
     # warning - all experiments, including running ones, 
     # and completed ones will be permanently lost!
     #
+    # @todo removed slotmachine, check whether we actually need this functionality
+    #
     def self.nuke_all_experiments
       find_all_in_list(:pending).each do |experiment|
         experiment.nuke_experiment!
@@ -446,7 +451,7 @@ module Lacmus
       Lacmus.fast_storage.del list_key_by_type(:active)
       Lacmus.fast_storage.del list_key_by_type(:completed)
 
-      SlotMachine.reset_slots_to_defaults
+      # SlotMachine.reset_slots_to_defaults
     end
 
     def self.restart_all_active_experiments

@@ -263,19 +263,34 @@ describe Lacmus::Lab, "Lab" do
 
   # end # of describe "Functionality for render simple experiment using string"
 
-  describe "Functionality for render experiment using block" do
+  describe "Functionality for render experiment (BE)" do
+  	it "should render control variation for users belongs to control variation" do
+  		experiment_id 	 = create_and_activate_experiment.id
+      experiment_block = Proc.new {|i| "text for block"}
 
-    it "should render different results for control and experiment variations" do
+      expect(user_belongs_to_control_variation?(experiment_id)).to be_true
+      result = render_be_control_variation(experiment_id, &experiment_block)
+      expect(result).to eq(experiment_block.call)
+  	end
+  end
+
+  describe "Functionality for render experiment (FE)" do
+  end
+
+  describe "Relocate me!" do
+    it "should render different results for control and experiment variation users" do
       experiment_id = create_and_activate_experiment.id
       block1 = Proc.new {|i| "text for block1"}
       block2 = Proc.new {|i| "text for block2"}
 
-      expect(user_belongs_to_control_variation?(experiment_id)).to be_false
+      expect(user_belongs_to_control_variation?(experiment_id)).to be_true
       result1 = render_be_control_variation(experiment_id, &block1)
-      expect(result1).to be_nil
+      expect(result1).to eq("text for block1")
+
+      # bump_user_id
 
       reset_instance_variables
-      result2 = render_experiment_version(experiment_id, &block2)
+      result2 = render_be_experiment_variation(experiment_id, 'b', &block2)
       expect(result2).to eq("text for block2")
       clear_cookies_and_uid_hash
 

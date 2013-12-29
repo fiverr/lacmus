@@ -65,7 +65,7 @@ module Lacmus
     # Set the user's cookies to expire based on the max_experiment_duration_in_days value.
     COOKIE_AGE_IN_SECONDS     = (60 * 60 * 24 * Settings.max_experiment_duration_in_days)
     MAX_COOKIE_TIME           = Time.now.utc + COOKIE_AGE_IN_SECONDS
-    PREVIEW_EXPERIMENT_PARAM  = 'render-variation'
+    CONTROL_VARIATION         = 'a'
 
     # Execute a ruby block for control group users. The block will also
     # be executed if the users belongs to another experiment or to an
@@ -180,11 +180,13 @@ module Lacmus
     # belongs to inactive experiment variation - render
     # belongs to control variation - render and mark
     #
+    # @todo add mutually exclusive logic here
+    #
     def render_be_control_variation(experiment_id, &block)
-    	return if user_belongs_to_active_varitation?(experiment_id)
+    	return if user_belongs_to_experiment_varitation?(experiment_id)
 
-      if user_belongs_to_control_group? && should_mark_experiment_view?(experiment_id, variation)
-        mark_experiment_view(experiment_id, :a)
+      if user_belongs_to_control_variation?(experiment_id) && should_mark_exposure?(experiment_id, CONTROL_VARIATION)
+        mark_experiment_view(experiment_id, CONTROL_VARIATION)
       end
 
       @rendered_control_group = true
@@ -194,6 +196,9 @@ module Lacmus
                     "experiment_id: #{experiment_id}, Exception: #{e.inspect}"
     end
 
+    # @todo add mutually exclusive logic here
+    # @todo add stickey, don't expose user to a different variation
+    #
     def render_be_experiment_variation(experiment_id, variation, &block)
       return if @rendered_control_group
       return if !user_belongs_to_variation?(experiment_id, variation)
@@ -212,11 +217,6 @@ module Lacmus
     # any other scenario - do nothing
     #
     def render_fe_variation(experiment_id, variation, &block)
-    end
-
-    # @todo
-    #
-    def user_belongs_to_active_varitation?(experiment_id)
     end
 
     # Mark the given kpi for all the experiments this user was exposed to.
@@ -302,13 +302,23 @@ module Lacmus
 
     private
 
-    # Returns the variation this user belongs to.
+    # Returns the experiment variation this user belongs to.
     #
     # @example User belongs to :b variation of experiment id = 10.
-    #   variation_for_user(10) # => :b
+    #   variation_for_user(10) # => 'b'
+    #
+    # @example User doesn't belong to experiment id = 10.
+    # 	variation_for_user(10) # => nil 
+    #
+    # @return [ Nil ] 	 If the user doesn't belong to the experiment
+    # @return [ String ] The experiment variation for the given user.
     #
     def variation_for_user(experiment_id)
-      current_user_id % SlotMachine.experiment_slot_ids.count
+    	return unless user_belongs_to_experiment?(experiment_id)
+
+      variations_data = TrafficAllocator.variations_allocation(experiment_id)
+      modulus_user_id = (current_user_id % 100)
+      variations_data[modulus_user_id-1]
     end
 
     # Returns the experiment id this user belongs to.
@@ -328,32 +338,6 @@ module Lacmus
       @user_experiment ||= SlotMachine.get_experiment_id_from_slot(slot_for_user)
     end
 
-    # Checks if user requested to view experiment variation by force for 
-    # preview purposes.
-    # 
-    # @return [ Boolean ] True if user requested to view experiment variation
-    #
-    def preview_experiment_variation?
-      defined?(params) && params[PREVIEW_EXPERIMENT_PARAM] == 'experiment'
-    end
-
-    # Checks if user requested to view control version by force for 
-    # preview purposes.
-    # 
-    # @return [ Boolean ] True if user requested to view control version
-    #
-    def preview_control_variation?
-      defined?(params) && params[PREVIEW_EXPERIMENT_PARAM] == 'control'
-    end
-
-    # Convenience method to check if user belongs to control group.
-    #
-    # @return [ Boolean ] True if belongs to control, false otherwise.
-    #
-    def user_belongs_to_control_variation?(experiment_id)
-      slot_for_user == 0
-    end
-
     # Convenience method to check if user belongs to given experiment_id.
     #
     # @param [ Integer ] experiment_id The experiment id to check against.
@@ -361,7 +345,26 @@ module Lacmus
     # @return [ Boolean ] True if belongs to the given experiment, false otherwise.
     #
     def user_belongs_to_experiment?(experiment_id)
-      experiment_for_user == experiment_id
+      experiment_exposure = TrafficAllocator.experiment_exposure(experiment_id)
+
+      return false if experiment_exposure.zero?
+      return (current_user_id % 100) <= experiment_exposure
+    end
+
+    # Convenience method to check if user belongs to control variation.
+    #
+    # @return [ Boolean ] True if belongs to control variation, false otherwise.
+    #
+    def user_belongs_to_control_variation?(experiment_id)
+      variation_for_user(experiment_id).to_s == CONTROL_VARIATION
+    end
+
+    # Convenience method to check if user belongs to control variation.
+    #
+    # @return [ Boolean ] True if belongs to control variation, false otherwise.
+    #
+    def user_belongs_to_experiment_varitation?(experiment_id)
+      variation_for_user(experiment_id).to_s != CONTROL_VARIATION
     end
 
     # Convenience method to check if user belongs to a slot which
@@ -369,9 +372,9 @@ module Lacmus
     #
     # @return [ Boolean ] True if belongs to empty slot, false otherwise.
     #
-    def user_belongs_to_empty_slot?
-      experiment_for_user == -1
-    end
+    # def user_belongs_to_empty_slot?
+    #   experiment_for_user == -1
+    # end
 
     # Returns if we should mark the experiment id for the given user.
     # User is only marked once for the experiments he belongs to.
@@ -385,7 +388,8 @@ module Lacmus
     #
     # @todo check this method after finishing the render variations methods
     #
-    def should_mark_experiment_view?(experiment_id)
+    def should_mark_exposure?(experiment_id, variation)
+return false
       return false if !Experiment.active?(experiment_id)
       return true  if exposed_experiments.empty?
 
