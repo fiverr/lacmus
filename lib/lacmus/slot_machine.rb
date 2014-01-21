@@ -53,7 +53,7 @@ module Lacmus
     # @return [ Array<Hash> ] Array of hashes contaning the active experiments.
     #
     def experiment_slots
-      if worker_cache_valid?
+      if worker_cache_valid? && $__lcms__active_experiments
         return $__lcms__active_experiments
       end
 
